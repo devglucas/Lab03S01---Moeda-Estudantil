@@ -1,1 +1,37 @@
-.
+@startuml casos_de_uso_moeda
+left to right direction
+skinparam packageStyle rectangle
+
+actor Aluno
+actor Professor
+actor "Empresa Parceira" as Empresa
+
+rectangle "Sistema de Moeda Estudantil" {
+  usecase "R01 Realizar login" as UC01
+  usecase "R02 Cadastrar-se" as UC02
+  usecase "R03 Enviar moedas a um aluno" as UC03
+  usecase "R04 Consultar extrato" as UC04
+  usecase "R05 Trocar moedas por vantagem" as UC05
+  usecase "R06 Cadastrar vantagem" as UC06
+  usecase "R07 Conferir troca de vantagem" as UC07
+  usecase "R08 Enviar notificação via e-mail" as UC08
+  usecase "R09 Receber cupom via e-mail" as UC09
+
+}
+
+Aluno --> UC01
+Aluno --> UC02
+Aluno --> UC04
+Aluno --> UC05
+Professor --> UC01
+Professor --> UC03
+Professor --> UC04
+Empresa --> UC01
+Empresa --> UC02
+Empresa --> UC06
+Empresa --> UC07
+
+
+UC03 ..> UC08 : <<include>>
+UC05 ..> UC09 : <<include>>
+@enduml
