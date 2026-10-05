@@ -2,36 +2,67 @@
 left to right direction
 skinparam packageStyle rectangle
 
+' ===== Atores =====
+actor "Usuário" as Usuario
 actor Aluno
 actor Professor
 actor "Empresa Parceira" as Empresa
+actor "Serviço de E-mail" as Email
+
+Aluno --|> Usuario
+Professor --|> Usuario
+Empresa --|> Usuario
 
 rectangle "Sistema de Moeda Estudantil" {
   usecase "R01 Realizar login" as UC01
-  usecase "R02 Cadastrar-se" as UC02
-  usecase "R03 Enviar moedas a um aluno" as UC03
-  usecase "R04 Consultar extrato" as UC04
-  usecase "R05 Trocar moedas por vantagem" as UC05
+  usecase "R02 Cadastrar aluno" as UC02
+  usecase "R03 Selecionar instituição de ensino" as UC03
+  usecase "R04 Definir login e senha" as UC04
+  usecase "R05 Cadastrar empresa parceira" as UC05
   usecase "R06 Cadastrar vantagem" as UC06
-  usecase "R07 Conferir troca de vantagem" as UC07
-  usecase "R08 Enviar notificação via e-mail" as UC08
-  usecase "R09 Receber cupom via e-mail" as UC09
+  usecase "R08 Enviar moedas a um aluno" as UC08
+  usecase "R09 Verificar saldo" as UC09
+  usecase "R10 Notificar aluno por e-mail" as UC10
+  usecase "R11 Consultar extrato" as UC11
+  usecase "R12 Consultar vantagens" as UC12
+  usecase "R13 Trocar moedas por vantagem" as UC13
+  usecase "R14 Gerar código de cupom" as UC14
+  usecase "R15 Enviar cupom ao aluno por e-mail" as UC15
+  usecase "R16 Enviar e-mail de conferência ao parceiro" as UC16
+
 
 }
 
-Aluno --> UC01
+' ===== Associações =====
+Usuario --> UC01
+Usuario --> UC11
+
 Aluno --> UC02
-Aluno --> UC04
-Aluno --> UC05
-Professor --> UC01
-Professor --> UC03
-Professor --> UC04
-Empresa --> UC01
-Empresa --> UC02
+Aluno --> UC12
+Aluno --> UC13
+
+Professor --> UC08
+
+Empresa --> UC05
 Empresa --> UC06
-Empresa --> UC07
 
 
-UC03 ..> UC08 : <<include>>
-UC05 ..> UC09 : <<include>>
+UC10 --> Email
+UC15 --> Email
+UC16 --> Email
+
+' ===== Relacionamentos =====
+UC02 ..> UC03 : <<include>>
+UC02 ..> UC04 : <<include>>
+UC05 ..> UC04 : <<include>>
+UC05 ..> UC06 : <<include>>
+
+UC08 ..> UC09 : <<include>>
+UC08 ..> UC10 : <<include>>
+
+UC13 ..> UC09 : <<include>>
+UC13 ..> UC14 : <<include>>
+UC13 ..> UC15 : <<include>>
+UC13 ..> UC16 : <<include>>
+UC12 <.. UC13 : <<extend>>
 @enduml
