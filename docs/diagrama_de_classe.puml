@@ -1,0 +1,101 @@
+@startuml
+skinparam linetype ortho
+
+class InstituicaoEnsino {
+  - id : Long
+  - login : String
+  - senha : String
+  - nome : String
+}
+
+class Professor {
+  - login : String
+  - senha : String
+  - nome : String
+  - cpf : String
+  - departamento : String
+  - saldo : int
+  + creditarSemestre() : void
+  + enviarMoedas(aluno : Aluno, valor : int, motivo : String) : EnvioMoedas
+  + possuiSaldo(valor : int) : boolean
+}
+
+class Aluno {
+  - login : String
+  - senha : String
+  - nome : String
+  - email : String
+  - cpf : String
+  - rg : String
+  - endereco : String
+  - curso : String
+  - saldo : int
+  + receberMoedas(valor : int) : void
+  + debitar(valor : int) : void
+  + consultarVantagens() : List<Vantagem>
+  + trocarMoedas(vantagem : Vantagem) : TrocaVantagem
+}
+
+class EmpresaParceira {
+  - login : String
+  - senha : String
+  - nome : String
+  - email : String
+  + cadastrarVantagem(v : Vantagem) : void
+}
+
+class Vantagem {
+  - id : Long
+  - nome : String
+  - descricao : String
+  - foto : String
+  - custoMoedas : int
+}
+
+abstract class Transacao {
+  - id : Long
+  - data : LocalDateTime
+  - valor : int
+}
+
+class EnvioMoedas {
+  - mensagem : String
+}
+
+class TrocaVantagem {
+}
+
+class Cupom {
+  - codigo : String
+  - dataEmissao : LocalDateTime
+}
+
+interface ServicoEmail {
+  + enviar(destinatario : String, assunto : String, corpo : String) : void
+}
+
+class NotificacaoEmail {
+  + notificarRecebimentoMoedas(envio : EnvioMoedas) : void
+  + enviarCupomAoAluno(troca : TrocaVantagem) : void
+  + enviarConferenciaAoParceiro(troca : TrocaVantagem) : void
+}
+
+InstituicaoEnsino "1" o-- "0..*" Professor : vinculado a
+InstituicaoEnsino "1" o-- "0..*" Aluno : estuda em
+
+EmpresaParceira "1" *-- "1..*" Vantagem : oferece
+
+Transacao <|-- EnvioMoedas
+Transacao <|-- TrocaVantagem
+
+Professor "1" --> "0..*" EnvioMoedas : realiza
+Aluno "1" --> "0..*" EnvioMoedas : recebe
+
+Aluno "1" --> "0..*" TrocaVantagem : realiza
+Vantagem "1" <-- "0..*" TrocaVantagem : resgatada em
+TrocaVantagem "1" *-- "1" Cupom : gera
+
+ServicoEmail <|.. NotificacaoEmail
+NotificacaoEmail ..> EnvioMoedas
+NotificacaoEmail ..> TrocaVantagem
+@enduml

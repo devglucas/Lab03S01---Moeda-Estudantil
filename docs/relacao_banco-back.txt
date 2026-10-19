@@ -1,0 +1,4 @@
+por meio da dependecia do python flask, é possivel manipular o banco sem ultilizar as SQLs convenciona,
+mesmo metodo ultilziado no TI4 que facilita o entendimento
+
+e o banco é o SQLite, que fica salvo no arquivo moedas.db
