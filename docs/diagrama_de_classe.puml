@@ -1,16 +1,16 @@
 @startuml
 skinparam linetype ortho
 
+class Usuario {
+  - email : String
+  - senha : String
+}
 class InstituicaoEnsino {
   - id : Long
-  - login : String
-  - senha : String
   - nome : String
 }
 
 class Professor {
-  - login : String
-  - senha : String
   - nome : String
   - cpf : String
   - departamento : String
@@ -21,8 +21,6 @@ class Professor {
 }
 
 class Aluno {
-  - login : String
-  - senha : String
   - nome : String
   - email : String
   - cpf : String
@@ -37,8 +35,6 @@ class Aluno {
 }
 
 class EmpresaParceira {
-  - login : String
-  - senha : String
   - nome : String
   - email : String
   + cadastrarVantagem(v : Vantagem) : void
@@ -79,6 +75,10 @@ class NotificacaoEmail {
   + enviarCupomAoAluno(troca : TrocaVantagem) : void
   + enviarConferenciaAoParceiro(troca : TrocaVantagem) : void
 }
+
+Usuario <.. Aluno
+Usuario <.. Professor
+Usuario <.. EmpresaParceira
 
 InstituicaoEnsino "1" o-- "0..*" Professor : vinculado a
 InstituicaoEnsino "1" o-- "0..*" Aluno : estuda em
