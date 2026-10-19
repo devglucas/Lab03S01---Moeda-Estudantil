@@ -1,6 +1,6 @@
 """Model dos alunos (cadastro, saldo de moedas e instituição de ensino).
 
-O aluno é um ``Usuario``: herda ``login`` e ``senha_hash``. O ``saldo`` é
+O aluno é um ``Usuario``: herda ``login`` (o e-mail) e ``senha_hash``. O ``saldo`` é
 sempre alterado por transações (recebimento de moedas e troca por vantagem),
 nunca direto pela tela de cadastro.
 """
@@ -48,5 +48,4 @@ class Aluno(Usuario):
             "saldo": self.saldo,
             "instituicaoId": self.instituicao_id,
             "instituicaoNome": self.instituicao.nome,
-            "login": self.login,
         }

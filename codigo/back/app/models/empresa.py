@@ -20,5 +20,4 @@ class EmpresaParceira(Usuario):
             "nome": self.nome,
             "email": self.email,
             "cnpj": self.cnpj,
-            "login": self.login,
         }
