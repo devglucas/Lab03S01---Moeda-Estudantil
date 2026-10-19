@@ -2,13 +2,21 @@
 
 contribuicoes
 -> correcao do back que nao estava subindo (faltava o arquivo de validacao, funcao buscar duplicada nos controllers, funcao texto que nao existia)
+
 -> validacao dos campos no cadastro de aluno e empresa
+
 -> CNPJ na empresa parceira
+
 -> seed com as instituicoes de ensino iniciais
+
 -> testes automatizados dos CRUDs com pytest
+
 -> front-end com React e Vite, com as telas de cadastro, listagem, edicao e exclusao de aluno e empresa
+
 -> mascaras de CPF, RG e CNPJ no front
+
 -> modelo entidade-relacionamento 
+
 -> atualizacao do readme 
 
 decisões
