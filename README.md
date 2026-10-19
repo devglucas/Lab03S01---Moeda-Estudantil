@@ -126,7 +126,7 @@ O grupo escolheu usar um **ORM (Object-Relational Mapping)**, o **SQLAlchemy**, 
 
 **Mapeamento da herança**
 
-`Aluno`, `Professor` e `EmpresaParceira` herdam de `Usuario`. Foi usada a estratégia **joined table** (uma tabela por subtipo): a tabela `usuarios` guarda o login, o hash da senha e o tipo do usuário, e cada perfil tem a sua própria tabela, cuja chave primária também é chave estrangeira para `usuarios.id`. Assim o login é único entre todos os perfis, e cada tabela guarda apenas os campos do seu perfil.
+`Aluno`, `Professor` e `EmpresaParceira` herdam de `Usuario`. Foi usada a estratégia **joined table** (uma tabela por subtipo): a tabela `usuarios` guarda o login (que é o próprio e-mail do usuário), o hash da senha e o tipo do usuário, e cada perfil tem a sua própria tabela, cuja chave primária também é chave estrangeira para `usuarios.id`. Assim o e-mail é único entre todos os perfis, e cada tabela guarda apenas os campos do seu perfil.
 
 **Banco de dados**
 
@@ -282,7 +282,7 @@ source venv/bin/activate
 python -m pytest
 ```
 
-Eles cobrem o CRUD completo de aluno e de empresa parceira, a validação de campos obrigatórios, CPF e CNPJ, e as regras de unicidade (login, e-mail, CPF e CNPJ).
+Eles cobrem o CRUD completo de aluno e de empresa parceira, a validação de campos obrigatórios, CPF e CNPJ, e as regras de unicidade (e-mail único entre todos os perfis, CPF e CNPJ).
 
 ---
 

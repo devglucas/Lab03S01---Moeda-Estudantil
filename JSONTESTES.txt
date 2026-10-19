@@ -10,7 +10,6 @@ POST/PUT /api/empresas  (na edicao a senha e opcional)
   "endereco": "Rua das Flores, 100",
   "curso": "Engenharia de Software",
   "instituicaoId": 1,
-  "login": "joao123",
   "senha": "senha123"
 }
 
@@ -37,6 +36,5 @@ POST/PUT /api/empresas  (na edicao a senha e opcional)
   "nome": "empresa testestes",
   "email": "testes@testes.com",
   "cnpj": "12345678000190",
-  "login": "testes",
   "senha": "testes1"
 }
