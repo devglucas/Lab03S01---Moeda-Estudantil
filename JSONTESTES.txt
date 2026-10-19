@@ -1,0 +1,37 @@
+{
+  "nome": "João",
+  "email": "joao@gmail.com",
+  "cpf": "12345678901",
+  "rg": "MG123456",
+  "endereco": "Rua das Flores, 100",
+  "curso": "Engenharia de Software",
+  "instituicaoId": 1,
+  "login": "joao123",
+  "senha": "senha123"
+}
+
+{
+  "nome": "João Franca",
+  "email": "joaofranca@gmail.com",
+  "cpf": "98765432101",
+  "rg": "MGTESTES",
+  "endereco": "Rua TESTES, 200",
+  "curso": "Ciencias",
+  "instituicaoId": 1
+}
+
+
+{
+  "nome": "PUC Minas"
+}
+
+{
+  "nome": "PUC SP"
+}
+
+{
+  "nome": "empresa testestes",
+  "email": "testes@testes.com",
+  "login": "testes",
+  "senha": "testes1"
+}
