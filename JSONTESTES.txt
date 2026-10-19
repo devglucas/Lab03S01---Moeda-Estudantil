@@ -1,3 +1,7 @@
+POST/PUT /api/alunos  (na edicao a senha e opcional)
+POST/PUT /api/instituicoes
+POST/PUT /api/empresas  (na edicao a senha e opcional)
+
 {
   "nome": "João",
   "email": "joao@gmail.com",
@@ -32,6 +36,7 @@
 {
   "nome": "empresa testestes",
   "email": "testes@testes.com",
+  "cnpj": "12345678000190",
   "login": "testes",
   "senha": "testes1"
 }
