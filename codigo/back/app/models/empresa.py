@@ -10,6 +10,7 @@ class EmpresaParceira(Usuario):
 
     nome = db.Column(db.String(120), nullable=False)
     email = db.Column(db.String(160), nullable=False, unique=True)
+    cnpj = db.Column(db.String(14), nullable=False, unique=True)  # só dígitos
 
     __mapper_args__ = {"polymorphic_identity": "empresa"}
 
@@ -18,5 +19,5 @@ class EmpresaParceira(Usuario):
             "id": self.id,
             "nome": self.nome,
             "email": self.email,
-            "login": self.login,
+            "cnpj": self.cnpj,
         }

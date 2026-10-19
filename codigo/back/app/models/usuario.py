@@ -4,6 +4,9 @@
 Usa herança de tabela unida (joined): a tabela ``usuarios`` guarda o que é
 comum e cada perfil tem a sua própria tabela. Assim o login é único entre
 todos os tipos de usuário.
+
+O login é o próprio e-mail do usuário: os controllers o mantêm sincronizado
+com o campo ``email`` do perfil no cadastro e na edição.
 """
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -16,7 +19,7 @@ class Usuario(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
     # Credenciais (autenticação exigida para todos os perfis).
-    login = db.Column(db.String(50), nullable=False, unique=True)
+    login = db.Column(db.String(160), nullable=False, unique=True)
     senha_hash = db.Column(db.String(255), nullable=False)
 
     # Discriminador da herança: "aluno" | "professor" | "empresa".

@@ -1,0 +1,102 @@
+@startuml modelo-er
+!pragma layout smetana
+hide circle
+skinparam linetype ortho
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+
+title Modelo Entidade-Relacionamento - Sistema de Moeda Estudantil
+
+entity "usuarios" as usuarios #FFFFFF ##333333 {
+  * id : INTEGER <<PK>>
+  --
+  * login : VARCHAR(160) <<UNIQUE>>
+  * senha_hash : VARCHAR(255)
+  * tipo : VARCHAR(20)
+}
+
+entity "instituicoes_ensino" as instituicoes #FFFFFF ##333333 {
+  * id : INTEGER <<PK>>
+  --
+  * nome : VARCHAR(160) <<UNIQUE>>
+}
+
+entity "alunos" as alunos #FFFFFF ##333333 {
+  * id : INTEGER <<PK, FK>>
+  --
+  * nome : VARCHAR(120)
+  * email : VARCHAR(160) <<UNIQUE>>
+  * cpf : VARCHAR(11) <<UNIQUE>>
+  * rg : VARCHAR(20)
+  * endereco : VARCHAR(255)
+  * curso : VARCHAR(120)
+  * saldo : INTEGER
+  * instituicao_id : INTEGER <<FK>>
+}
+
+entity "professores" as professores <<planejada>> #EEEEEE ##[dashed]888888 {
+  * id : INTEGER <<PK, FK>>
+  --
+  * nome : VARCHAR(120)
+  * email : VARCHAR(160) <<UNIQUE>>
+  * cpf : VARCHAR(11) <<UNIQUE>>
+  * departamento : VARCHAR(120)
+  * saldo : INTEGER
+  * instituicao_id : INTEGER <<FK>>
+}
+
+entity "empresas_parceiras" as empresas #FFFFFF ##333333 {
+  * id : INTEGER <<PK, FK>>
+  --
+  * nome : VARCHAR(120)
+  * email : VARCHAR(160) <<UNIQUE>>
+  * cnpj : VARCHAR(14) <<UNIQUE>>
+}
+
+entity "vantagens" as vantagens <<planejada>> #EEEEEE ##[dashed]888888 {
+  * id : INTEGER <<PK>>
+  --
+  * nome : VARCHAR(120)
+  * descricao : TEXT
+  foto : VARCHAR(255)
+  * custo_moedas : INTEGER
+  * empresa_id : INTEGER <<FK>>
+}
+
+entity "envios_moeda" as envios <<planejada>> #EEEEEE ##[dashed]888888 {
+  * id : INTEGER <<PK>>
+  --
+  * data : DATETIME
+  * quantidade : INTEGER
+  * motivo : TEXT
+  * professor_id : INTEGER <<FK>>
+  * aluno_id : INTEGER <<FK>>
+}
+
+entity "trocas_vantagem" as trocas <<planejada>> #EEEEEE ##[dashed]888888 {
+  * id : INTEGER <<PK>>
+  --
+  * data : DATETIME
+  * quantidade : INTEGER
+  * codigo : VARCHAR(20) <<UNIQUE>>
+  * aluno_id : INTEGER <<FK>>
+  * vantagem_id : INTEGER <<FK>>
+}
+
+' Herança (joined table): cada perfil compartilha o id de usuarios
+usuarios ||--o| alunos : "é um"
+usuarios ||--o| professores : "é um"
+usuarios ||--o| empresas : "é um"
+
+instituicoes ||--o{ alunos : "estuda em"
+instituicoes ||--o{ professores : "vinculado a"
+
+empresas ||--o{ vantagens : "oferece"
+
+professores ||--o{ envios : "envia"
+alunos ||--o{ envios : "recebe"
+
+alunos ||--o{ trocas : "realiza"
+vantagens ||--o{ trocas : "resgatada em"
+
+@enduml

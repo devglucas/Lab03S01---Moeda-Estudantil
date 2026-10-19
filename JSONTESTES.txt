@@ -1,3 +1,7 @@
+POST/PUT /api/alunos  (na edicao a senha e opcional)
+POST/PUT /api/instituicoes
+POST/PUT /api/empresas  (na edicao a senha e opcional)
+
 {
   "nome": "João",
   "email": "joao@gmail.com",
@@ -6,7 +10,6 @@
   "endereco": "Rua das Flores, 100",
   "curso": "Engenharia de Software",
   "instituicaoId": 1,
-  "login": "joao123",
   "senha": "senha123"
 }
 
@@ -32,6 +35,6 @@
 {
   "nome": "empresa testestes",
   "email": "testes@testes.com",
-  "login": "testes",
+  "cnpj": "12345678000190",
   "senha": "testes1"
 }

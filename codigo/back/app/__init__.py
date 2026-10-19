@@ -39,12 +39,10 @@ def create_app():
         allow_headers=["Content-Type", "Authorization"],
     )
 
-    # from app.controllers.usuario_controller import usuario_bp
     from app.controllers.aluno_controller import aluno_bp
     from app.controllers.empresa_controller import empresa_bp
     from app.controllers.instituicao_controller import instituicao_bp
 
-    # app.register_blueprint(usuario_bp)
     app.register_blueprint(aluno_bp)
     app.register_blueprint(empresa_bp)
     app.register_blueprint(instituicao_bp)
@@ -52,9 +50,9 @@ def create_app():
     # Cria as tabelas que ainda não existem e preserva os dados já gravados.
     with app.app_context():
         from app import models  # noqa: F401  (registra as tabelas no metadata)
-        # from app.seed import seed_data
+        from app.seed import seed_data
 
         db.create_all()
-        # seed_data()
+        seed_data()
 
     return app

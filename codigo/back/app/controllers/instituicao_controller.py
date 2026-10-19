@@ -1,4 +1,3 @@
-
 """Controller das instituições de ensino: CRUD em /api/instituicoes."""
 from flask import Blueprint, jsonify, request
 from sqlalchemy.exc import IntegrityError
@@ -20,7 +19,7 @@ def _erro(mensagem, status, campos=None):
         corpo["campos"] = campos
     return jsonify(corpo), status
 
-def buscar(instituicao_id):
+def _buscar(instituicao_id):
     return db.session.get(InstituicaoEnsino, instituicao_id)
 
 def nome_valido(dados):
@@ -79,7 +78,7 @@ def listar():
 
 @instituicao_bp.get("/<int:instituicao_id>")
 def buscar(instituicao_id):
-    instituicao = buscar(instituicao_id)
+    instituicao = _buscar(instituicao_id)
 
     if instituicao is None:
         return _erro("Instituição não encontrada", 404)
@@ -91,7 +90,7 @@ def buscar(instituicao_id):
 
 @instituicao_bp.put("/<int:instituicao_id>")
 def atualizar(instituicao_id):
-    instituicao = buscar(instituicao_id)
+    instituicao = _buscar(instituicao_id)
 
     if instituicao is None:
         return _erro("Instituição não encontrada", 404)
@@ -125,7 +124,7 @@ def atualizar(instituicao_id):
 
 @instituicao_bp.delete("/<int:instituicao_id>")
 def remover(instituicao_id):
-    instituicao = buscar(instituicao_id)
+    instituicao = _buscar(instituicao_id)
 
     if instituicao is None:
         return _erro("Instituição não encontrada", 404)
