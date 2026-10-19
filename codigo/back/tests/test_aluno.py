@@ -6,7 +6,6 @@ ALUNO = {
     "endereco": "Rua das Flores, 100",
     "curso": "Engenharia de Software",
     "instituicaoId": 1,
-    "login": "joao123",
     "senha": "senha123",
 }
 
@@ -40,7 +39,7 @@ def test_campos_obrigatorios(client):
     resp = client.post("/api/alunos", json={"nome": "Sem dados"})
     assert resp.status_code == 400
     campos = resp.get_json()["campos"]
-    assert {"email", "cpf", "rg", "login", "senha", "instituicaoId"} <= campos.keys()
+    assert {"email", "cpf", "rg", "senha", "instituicaoId"} <= campos.keys()
 
 
 def test_instituicao_inexistente(client):
@@ -53,6 +52,6 @@ def test_cpf_duplicado(client):
     client.post("/api/alunos", json=ALUNO)
     resp = client.post(
         "/api/alunos",
-        json={**ALUNO, "email": "outro@gmail.com", "login": "outro"},
+        json={**ALUNO, "email": "outro@gmail.com"},
     )
     assert resp.status_code == 409
