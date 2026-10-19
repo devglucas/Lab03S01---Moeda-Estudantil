@@ -19,7 +19,7 @@ def _erro(mensagem, status, campos=None):
     return jsonify(corpo), status
 
 
-def _buscar(aluno_id):
+def buscar(aluno_id):
     return db.session.get(Aluno, aluno_id)
 
 
@@ -85,7 +85,7 @@ def listar():
 
 @aluno_bp.get("/<int:aluno_id>")
 def buscar(aluno_id):
-    aluno = _buscar(aluno_id)
+    aluno = buscar(aluno_id)
 
     if aluno is None:
         return _erro("Aluno não encontrado", 404)
@@ -94,7 +94,7 @@ def buscar(aluno_id):
 
 @aluno_bp.put("/<int:aluno_id>")
 def atualizar(aluno_id):
-    aluno = _buscar(aluno_id)
+    aluno = buscar(aluno_id)
 
     if aluno is None:
         return _erro("Aluno não encontrado", 404)
@@ -156,7 +156,7 @@ def atualizar(aluno_id):
 
 @aluno_bp.delete("/<int:aluno_id>")
 def remover(aluno_id):
-    aluno = _buscar(aluno_id)
+    aluno = buscar(aluno_id)
 
     if aluno is None:
         return _erro("Aluno não encontrado", 404)

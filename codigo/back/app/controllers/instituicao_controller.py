@@ -20,10 +20,10 @@ def _erro(mensagem, status, campos=None):
         corpo["campos"] = campos
     return jsonify(corpo), status
 
-def _buscar(instituicao_id):
+def buscar(instituicao_id):
     return db.session.get(InstituicaoEnsino, instituicao_id)
 
-def _nome_valido(dados):
+def nome_valido(dados):
     if not isinstance(dados, dict):
         return None, {"nome": "Envie os dados em JSON."}
 
@@ -42,7 +42,7 @@ def _nome_valido(dados):
 @instituicao_bp.post("")
 def criar():
     dados = request.get_json(silent=True)
-    nome, campos = _nome_valido(dados)
+    nome, campos = nome_valido(dados)
 
     if campos:
         return _erro("Dados inválidos", 400, campos)
@@ -79,7 +79,7 @@ def listar():
 
 @instituicao_bp.get("/<int:instituicao_id>")
 def buscar(instituicao_id):
-    instituicao = _buscar(instituicao_id)
+    instituicao = buscar(instituicao_id)
 
     if instituicao is None:
         return _erro("Instituição não encontrada", 404)
@@ -91,13 +91,13 @@ def buscar(instituicao_id):
 
 @instituicao_bp.put("/<int:instituicao_id>")
 def atualizar(instituicao_id):
-    instituicao = _buscar(instituicao_id)
+    instituicao = buscar(instituicao_id)
 
     if instituicao is None:
         return _erro("Instituição não encontrada", 404)
 
     dados = request.get_json(silent=True)
-    nome, campos = _nome_valido(dados)
+    nome, campos = nome_valido(dados)
 
     if campos:
         return _erro("Dados inválidos", 400, campos)
@@ -125,7 +125,7 @@ def atualizar(instituicao_id):
 
 @instituicao_bp.delete("/<int:instituicao_id>")
 def remover(instituicao_id):
-    instituicao = _buscar(instituicao_id)
+    instituicao = buscar(instituicao_id)
 
     if instituicao is None:
         return _erro("Instituição não encontrada", 404)
