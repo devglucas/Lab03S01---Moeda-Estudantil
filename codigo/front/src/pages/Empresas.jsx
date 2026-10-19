@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { empresasApi } from "../api.js";
 import Aviso from "../components/Aviso.jsx";
 import Campo from "../components/Campo.jsx";
-import { formatarCnpj } from "../formatacao.js";
+import { apenasDigitos, mascaraCnpj } from "../formatacao.js";
 
 const VAZIO = { nome: "", email: "", cnpj: "", senha: "" };
 
@@ -29,7 +29,7 @@ export default function Empresas() {
 
   function alterar(evento) {
     const { name, value } = evento.target;
-    setForm((atual) => ({ ...atual, [name]: value }));
+    setForm((atual) => ({ ...atual, [name]: name === "cnpj" ? mascaraCnpj(value) : value }));
   }
 
   function limpar() {
@@ -42,7 +42,7 @@ export default function Empresas() {
     setForm({
       nome: empresa.nome,
       email: empresa.email,
-      cnpj: formatarCnpj(empresa.cnpj),
+      cnpj: mascaraCnpj(empresa.cnpj),
       senha: "",
     });
     setEditandoId(empresa.id);
@@ -55,12 +55,15 @@ export default function Empresas() {
     setSalvando(true);
     setAviso(null);
 
+    // A pontuação do CNPJ é só visual: a API recebe apenas os dígitos.
+    const dados = { ...form, cnpj: apenasDigitos(form.cnpj) };
+
     try {
       if (editandoId) {
-        await empresasApi.atualizar(editandoId, form);
+        await empresasApi.atualizar(editandoId, dados);
         setAviso({ tipo: "sucesso", texto: "Empresa atualizada com sucesso." });
       } else {
-        await empresasApi.criar(form);
+        await empresasApi.criar(dados);
         setAviso({ tipo: "sucesso", texto: "Empresa cadastrada com sucesso." });
       }
       limpar();
@@ -95,7 +98,7 @@ export default function Empresas() {
         <div className="grade">
           <Campo rotulo="Nome" nome="nome" value={form.nome} onChange={alterar} erro={erros.nome} />
           <Campo rotulo="E-mail" nome="email" type="email" value={form.email} onChange={alterar} erro={erros.email} />
-          <Campo rotulo="CNPJ" nome="cnpj" placeholder="00.000.000/0000-00" value={form.cnpj} onChange={alterar} erro={erros.cnpj} />
+          <Campo rotulo="CNPJ" nome="cnpj" placeholder="00.000.000/0000-00" inputMode="numeric" maxLength={18} value={form.cnpj} onChange={alterar} erro={erros.cnpj} />
           <Campo
             rotulo={editandoId ? "Nova senha (opcional)" : "Senha"}
             nome="senha"
@@ -138,7 +141,7 @@ export default function Empresas() {
                   <tr key={empresa.id}>
                     <td>{empresa.nome}</td>
                     <td>{empresa.email}</td>
-                    <td>{formatarCnpj(empresa.cnpj)}</td>
+                    <td>{mascaraCnpj(empresa.cnpj)}</td>
                     <td className="linha-acoes">
                       <button type="button" className="secundario" onClick={() => editar(empresa)}>
                         Editar

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { alunosApi, instituicoesApi } from "../api.js";
 import Aviso from "../components/Aviso.jsx";
 import Campo from "../components/Campo.jsx";
-import { formatarCpf } from "../formatacao.js";
+import { apenasDigitos, limparRg, mascaraCpf, mascaraRg } from "../formatacao.js";
 
 const VAZIO = {
   nome: "",
@@ -15,6 +15,8 @@ const VAZIO = {
   instituicaoId: "",
   senha: "",
 };
+
+const MASCARAS = { cpf: mascaraCpf, rg: mascaraRg };
 
 export default function Alunos() {
   const [alunos, setAlunos] = useState([]);
@@ -44,7 +46,8 @@ export default function Alunos() {
 
   function alterar(evento) {
     const { name, value } = evento.target;
-    setForm((atual) => ({ ...atual, [name]: value }));
+    const mascara = MASCARAS[name];
+    setForm((atual) => ({ ...atual, [name]: mascara ? mascara(value) : value }));
   }
 
   function limpar() {
@@ -57,8 +60,8 @@ export default function Alunos() {
     setForm({
       nome: aluno.nome,
       email: aluno.email,
-      cpf: formatarCpf(aluno.cpf),
-      rg: aluno.rg,
+      cpf: mascaraCpf(aluno.cpf),
+      rg: mascaraRg(aluno.rg),
       endereco: aluno.endereco,
       curso: aluno.curso,
       instituicaoId: String(aluno.instituicaoId),
@@ -74,7 +77,13 @@ export default function Alunos() {
     setSalvando(true);
     setAviso(null);
 
-    const dados = { ...form, instituicaoId: Number(form.instituicaoId) || null };
+    // A pontuação de CPF e RG é só visual: a API recebe apenas os caracteres.
+    const dados = {
+      ...form,
+      cpf: apenasDigitos(form.cpf),
+      rg: limparRg(form.rg),
+      instituicaoId: Number(form.instituicaoId) || null,
+    };
 
     try {
       if (editandoId) {
@@ -116,8 +125,8 @@ export default function Alunos() {
         <div className="grade">
           <Campo rotulo="Nome" nome="nome" value={form.nome} onChange={alterar} erro={erros.nome} />
           <Campo rotulo="E-mail" nome="email" type="email" value={form.email} onChange={alterar} erro={erros.email} />
-          <Campo rotulo="CPF" nome="cpf" placeholder="000.000.000-00" value={form.cpf} onChange={alterar} erro={erros.cpf} />
-          <Campo rotulo="RG" nome="rg" value={form.rg} onChange={alterar} erro={erros.rg} />
+          <Campo rotulo="CPF" nome="cpf" placeholder="000.000.000-00" inputMode="numeric" maxLength={14} value={form.cpf} onChange={alterar} erro={erros.cpf} />
+          <Campo rotulo="RG" nome="rg" placeholder="00.000.000-0" maxLength={12} value={form.rg} onChange={alterar} erro={erros.rg} />
           <Campo rotulo="Endereço" nome="endereco" value={form.endereco} onChange={alterar} erro={erros.endereco} />
           <Campo rotulo="Curso" nome="curso" value={form.curso} onChange={alterar} erro={erros.curso} />
           <Campo rotulo="Instituição de ensino" erro={erros.instituicaoId}>
@@ -175,7 +184,7 @@ export default function Alunos() {
                   <tr key={aluno.id}>
                     <td>{aluno.nome}</td>
                     <td>{aluno.email}</td>
-                    <td>{formatarCpf(aluno.cpf)}</td>
+                    <td>{mascaraCpf(aluno.cpf)}</td>
                     <td>{aluno.curso}</td>
                     <td>{aluno.instituicaoNome}</td>
                     <td className="numero">{aluno.saldo}</td>
