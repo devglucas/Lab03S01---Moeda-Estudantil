@@ -1,4 +1,3 @@
-
 """Controller das empresas parceiras: CRUD em /api/empresas."""
 from flask import Blueprint, jsonify, request
 from sqlalchemy.exc import IntegrityError
@@ -6,9 +5,18 @@ from sqlalchemy.exc import IntegrityError
 from app.extensions import db
 from app.models.empresa import EmpresaParceira
 from app.models.usuario import Usuario
-from app.validacao import email_valido, faltantes, texto
-# Precisa tirar isso de validacao, preferi deixar sem, se quiser da p voltar tbm, aluno e instituicao ja ta sem
+from app.validacao import (
+    apenas_digitos,
+    email_valido,
+    faltantes,
+    senha_valida,
+    texto,
+)
+
+
 empresa_bp = Blueprint("empresas", __name__, url_prefix="/api/empresas")
+
+CAMPOS_EMPRESA = ["nome", "email", "cnpj"]
 
 
 def _erro(mensagem, status, campos=None):
@@ -17,28 +25,42 @@ def _erro(mensagem, status, campos=None):
         corpo["campos"] = campos
     return jsonify(corpo), status
 
+
 def _buscar(empresa_id):
     return db.session.get(EmpresaParceira, empresa_id)
 
-@empresa_bp.post("")
-def criar():
-    dados = request.get_json(silent=True) or {}
 
-    campos = faltantes(dados, ["nome", "email", "login", "senha"])
+def _validar(dados, obrigatorios):
+    campos = faltantes(dados, obrigatorios)
 
+    if "email" not in campos and not email_valido(texto(dados, "email")):
+        campos["email"] = "E-mail inválido"
 
+    if "cnpj" not in campos and len(apenas_digitos(texto(dados, "cnpj"))) != 14:
+        campos["cnpj"] = "O CNPJ deve ter 14 dígitos"
 
+    # Na criação a senha é obrigatória; na edição só é validada se vier preenchida.
     senha = dados.get("senha")
-    if "senha" not in campos and (
-        not isinstance(senha, str) or len(senha) < 6
-    ):
+    if "senha" not in campos and senha not in (None, "") and not senha_valida(senha):
         campos["senha"] = "A senha deve ter no mínimo 6 caracteres"
 
+    return campos
+
+
+# CREATE
+@empresa_bp.post("")
+def criar():
+    dados = request.get_json(silent=True)
+    if not isinstance(dados, dict):
+        return _erro("Envie os dados em JSON.", 400)
+
+    campos = _validar(dados, CAMPOS_EMPRESA + ["login", "senha"])
     if campos:
         return _erro("Dados inválidos", 400, campos)
 
     login = texto(dados, "login")
-    email = texto(dados, "email")
+    email = texto(dados, "email").lower()
+    cnpj = apenas_digitos(texto(dados, "cnpj"))
 
     if Usuario.query.filter_by(login=login).first():
         return _erro("Login já cadastrado", 409)
@@ -46,20 +68,23 @@ def criar():
     if EmpresaParceira.query.filter_by(email=email).first():
         return _erro("E-mail já cadastrado", 409)
 
+    if EmpresaParceira.query.filter_by(cnpj=cnpj).first():
+        return _erro("CNPJ já cadastrado", 409)
+
     empresa = EmpresaParceira(
         login=login,
         nome=texto(dados, "nome"),
         email=email,
+        cnpj=cnpj,
     )
-    empresa.definir_senha(senha)
-
+    empresa.definir_senha(dados["senha"])
     db.session.add(empresa)
 
     try:
         db.session.commit()
     except IntegrityError:
         db.session.rollback()
-        return _erro("Login ou e-mail já cadastrado", 409)
+        return _erro("Login, e-mail ou CNPJ já cadastrado", 409)
 
     return jsonify(empresa.to_dict()), 201
 
@@ -67,10 +92,7 @@ def criar():
 # READ - listar todas
 @empresa_bp.get("")
 def listar():
-    empresas = EmpresaParceira.query.order_by(
-        EmpresaParceira.nome
-    ).all()
-
+    empresas = EmpresaParceira.query.order_by(EmpresaParceira.nome).all()
     return jsonify([empresa.to_dict() for empresa in empresas])
 
 
@@ -93,33 +115,38 @@ def atualizar(empresa_id):
     if empresa is None:
         return _erro("Empresa não encontrada", 404)
 
-    dados = request.get_json(silent=True) or {}
-    campos = faltantes(dados, ["nome", "email"])
+    dados = request.get_json(silent=True)
+    if not isinstance(dados, dict):
+        return _erro("Envie os dados em JSON.", 400)
 
-    if "email" not in campos and not email_valido(texto(dados, "email")):
-        campos["email"] = "E-mail inválido"
-
-    senha = dados.get("senha")
-    if senha is not None and senha != "":
-        if not isinstance(senha, str) or len(senha) < 6:
-            campos["senha"] = "A senha deve ter no mínimo 6 caracteres"
-
+    campos = _validar(dados, CAMPOS_EMPRESA)
     if campos:
         return _erro("Dados inválidos", 400, campos)
 
-    email = texto(dados, "email")
+    email = texto(dados, "email").lower()
+    cnpj = apenas_digitos(texto(dados, "cnpj"))
 
-    outra = EmpresaParceira.query.filter(
+    outro_email = EmpresaParceira.query.filter(
         EmpresaParceira.email == email,
         EmpresaParceira.id != empresa_id,
     ).first()
 
-    if outra:
+    if outro_email:
         return _erro("E-mail já cadastrado", 409)
+
+    outro_cnpj = EmpresaParceira.query.filter(
+        EmpresaParceira.cnpj == cnpj,
+        EmpresaParceira.id != empresa_id,
+    ).first()
+
+    if outro_cnpj:
+        return _erro("CNPJ já cadastrado", 409)
 
     empresa.nome = texto(dados, "nome")
     empresa.email = email
+    empresa.cnpj = cnpj
 
+    senha = dados.get("senha")
     if senha:
         empresa.definir_senha(senha)
 
@@ -127,7 +154,7 @@ def atualizar(empresa_id):
         db.session.commit()
     except IntegrityError:
         db.session.rollback()
-        return _erro("E-mail já cadastrado", 409)
+        return _erro("E-mail ou CNPJ já cadastrado", 409)
 
     return jsonify(empresa.to_dict())
 
