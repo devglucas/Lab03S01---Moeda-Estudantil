@@ -10,7 +10,7 @@ title Modelo Entidade-Relacionamento - Sistema de Moeda Estudantil
 entity "usuarios" as usuarios #FFFFFF ##333333 {
   * id : INTEGER <<PK>>
   --
-  * login : VARCHAR(50) <<UNIQUE>>
+  * login : VARCHAR(160) <<UNIQUE>>
   * senha_hash : VARCHAR(255)
   * tipo : VARCHAR(20)
 }

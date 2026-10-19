@@ -9,8 +9,8 @@
 -- Herança: Aluno, Professor e EmpresaParceira herdam de Usuario usando a
 -- estratégia "joined table" (uma tabela por subtipo). A tabela usuarios
 -- guarda as credenciais comuns e cada perfil tem a sua tabela, cuja chave
--- primária é também chave estrangeira para usuarios.id. Assim o login é
--- único entre todos os tipos de usuário.
+-- primária é também chave estrangeira para usuarios.id. O login é o
+-- próprio e-mail do usuário, então o e-mail é único entre todos os perfis.
 -- =====================================================================
 
 PRAGMA foreign_keys = ON;
@@ -22,7 +22,7 @@ PRAGMA foreign_keys = ON;
 -- ---------------------------------------------------------------------
 CREATE TABLE usuarios (
     id          INTEGER      NOT NULL PRIMARY KEY,
-    login       VARCHAR(50)  NOT NULL UNIQUE,
+    login       VARCHAR(160) NOT NULL UNIQUE,
     senha_hash  VARCHAR(255) NOT NULL,
     tipo        VARCHAR(20)  NOT NULL
 );
