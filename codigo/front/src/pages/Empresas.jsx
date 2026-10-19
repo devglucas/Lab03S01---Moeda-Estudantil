@@ -5,7 +5,7 @@ import Aviso from "../components/Aviso.jsx";
 import Campo from "../components/Campo.jsx";
 import { formatarCnpj } from "../formatacao.js";
 
-const VAZIO = { nome: "", email: "", cnpj: "", login: "", senha: "" };
+const VAZIO = { nome: "", email: "", cnpj: "", senha: "" };
 
 export default function Empresas() {
   const [empresas, setEmpresas] = useState([]);
@@ -43,7 +43,6 @@ export default function Empresas() {
       nome: empresa.nome,
       email: empresa.email,
       cnpj: formatarCnpj(empresa.cnpj),
-      login: empresa.login,
       senha: "",
     });
     setEditandoId(empresa.id);
@@ -98,14 +97,6 @@ export default function Empresas() {
           <Campo rotulo="E-mail" nome="email" type="email" value={form.email} onChange={alterar} erro={erros.email} />
           <Campo rotulo="CNPJ" nome="cnpj" placeholder="00.000.000/0000-00" value={form.cnpj} onChange={alterar} erro={erros.cnpj} />
           <Campo
-            rotulo="Login"
-            nome="login"
-            value={form.login}
-            onChange={alterar}
-            erro={erros.login}
-            disabled={Boolean(editandoId)}
-          />
-          <Campo
             rotulo={editandoId ? "Nova senha (opcional)" : "Senha"}
             nome="senha"
             type="password"
@@ -139,7 +130,6 @@ export default function Empresas() {
                   <th>Nome</th>
                   <th>E-mail</th>
                   <th>CNPJ</th>
-                  <th>Login</th>
                   <th />
                 </tr>
               </thead>
@@ -149,7 +139,6 @@ export default function Empresas() {
                     <td>{empresa.nome}</td>
                     <td>{empresa.email}</td>
                     <td>{formatarCnpj(empresa.cnpj)}</td>
-                    <td>{empresa.login}</td>
                     <td className="linha-acoes">
                       <button type="button" className="secundario" onClick={() => editar(empresa)}>
                         Editar

@@ -13,7 +13,6 @@ const VAZIO = {
   endereco: "",
   curso: "",
   instituicaoId: "",
-  login: "",
   senha: "",
 };
 
@@ -63,7 +62,6 @@ export default function Alunos() {
       endereco: aluno.endereco,
       curso: aluno.curso,
       instituicaoId: String(aluno.instituicaoId),
-      login: aluno.login,
       senha: "",
     });
     setEditandoId(aluno.id);
@@ -132,14 +130,6 @@ export default function Alunos() {
               ))}
             </select>
           </Campo>
-          <Campo
-            rotulo="Login"
-            nome="login"
-            value={form.login}
-            onChange={alterar}
-            erro={erros.login}
-            disabled={Boolean(editandoId)}
-          />
           <Campo
             rotulo={editandoId ? "Nova senha (opcional)" : "Senha"}
             nome="senha"
