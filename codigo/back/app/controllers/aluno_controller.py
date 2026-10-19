@@ -64,25 +64,22 @@ def criar():
     if not isinstance(dados, dict):
         return _erro("Envie os dados em JSON.", 400)
 
-    campos, instituicao = _validar(dados, CAMPOS_ALUNO + ["login", "senha"])
+    campos, instituicao = _validar(dados, CAMPOS_ALUNO + ["senha"])
     if campos:
         return _erro("Dados inválidos", 400, campos)
 
-    login = texto(dados, "login")
     email = texto(dados, "email").lower()
     cpf = apenas_digitos(texto(dados, "cpf"))
 
-    if Usuario.query.filter_by(login=login).first():
-        return _erro("Login já cadastrado", 409)
-
-    if Aluno.query.filter_by(email=email).first():
+    # O e-mail é o login, então não pode se repetir em nenhum perfil.
+    if Usuario.query.filter_by(login=email).first():
         return _erro("E-mail já cadastrado", 409)
 
     if Aluno.query.filter_by(cpf=cpf).first():
         return _erro("CPF já cadastrado", 409)
 
     aluno = Aluno(
-        login=login,
+        login=email,
         nome=texto(dados, "nome"),
         email=email,
         cpf=cpf,
@@ -99,7 +96,7 @@ def criar():
         db.session.commit()
     except IntegrityError:
         db.session.rollback()
-        return _erro("Login, e-mail ou CPF já cadastrado", 409)
+        return _erro("E-mail ou CPF já cadastrado", 409)
 
     return jsonify(aluno.to_dict()), 201
 
@@ -138,9 +135,9 @@ def atualizar(aluno_id):
     email = texto(dados, "email").lower()
     cpf = apenas_digitos(texto(dados, "cpf"))
 
-    outro_email = Aluno.query.filter(
-        Aluno.email == email,
-        Aluno.id != aluno_id,
+    outro_email = Usuario.query.filter(
+        Usuario.login == email,
+        Usuario.id != aluno_id,
     ).first()
 
     if outro_email:
@@ -156,6 +153,7 @@ def atualizar(aluno_id):
 
     aluno.nome = texto(dados, "nome")
     aluno.email = email
+    aluno.login = email
     aluno.cpf = cpf
     aluno.rg = texto(dados, "rg")
     aluno.endereco = texto(dados, "endereco")

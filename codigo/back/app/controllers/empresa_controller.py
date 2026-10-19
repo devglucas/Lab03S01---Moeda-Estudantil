@@ -54,25 +54,22 @@ def criar():
     if not isinstance(dados, dict):
         return _erro("Envie os dados em JSON.", 400)
 
-    campos = _validar(dados, CAMPOS_EMPRESA + ["login", "senha"])
+    campos = _validar(dados, CAMPOS_EMPRESA + ["senha"])
     if campos:
         return _erro("Dados inválidos", 400, campos)
 
-    login = texto(dados, "login")
     email = texto(dados, "email").lower()
     cnpj = apenas_digitos(texto(dados, "cnpj"))
 
-    if Usuario.query.filter_by(login=login).first():
-        return _erro("Login já cadastrado", 409)
-
-    if EmpresaParceira.query.filter_by(email=email).first():
+    # O e-mail é o login, então não pode se repetir em nenhum perfil.
+    if Usuario.query.filter_by(login=email).first():
         return _erro("E-mail já cadastrado", 409)
 
     if EmpresaParceira.query.filter_by(cnpj=cnpj).first():
         return _erro("CNPJ já cadastrado", 409)
 
     empresa = EmpresaParceira(
-        login=login,
+        login=email,
         nome=texto(dados, "nome"),
         email=email,
         cnpj=cnpj,
@@ -84,7 +81,7 @@ def criar():
         db.session.commit()
     except IntegrityError:
         db.session.rollback()
-        return _erro("Login, e-mail ou CNPJ já cadastrado", 409)
+        return _erro("E-mail ou CNPJ já cadastrado", 409)
 
     return jsonify(empresa.to_dict()), 201
 
@@ -126,9 +123,9 @@ def atualizar(empresa_id):
     email = texto(dados, "email").lower()
     cnpj = apenas_digitos(texto(dados, "cnpj"))
 
-    outro_email = EmpresaParceira.query.filter(
-        EmpresaParceira.email == email,
-        EmpresaParceira.id != empresa_id,
+    outro_email = Usuario.query.filter(
+        Usuario.login == email,
+        Usuario.id != empresa_id,
     ).first()
 
     if outro_email:
@@ -144,6 +141,7 @@ def atualizar(empresa_id):
 
     empresa.nome = texto(dados, "nome")
     empresa.email = email
+    empresa.login = email
     empresa.cnpj = cnpj
 
     senha = dados.get("senha")
