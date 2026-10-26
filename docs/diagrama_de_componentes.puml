@@ -1,0 +1,113 @@
+@startuml diagrama_de_componentes
+!pragma layout smetana
+skinparam componentStyle uml2
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+
+title Diagrama de Componentes - Sistema de Moeda Estudantil
+
+actor "Usuário" as usuario
+
+node "Navegador" {
+  package "Front-end (React + Vite)" as front {
+    [App] as app
+    [Página Alunos] as pagAlunos
+    [Página Empresas] as pagEmpresas
+    [Componentes de UI\n(Campo, Aviso)] as ui
+    [Formatação\n(máscaras CPF/RG/CNPJ)] as formatacao
+    [Cliente da API\n(api.js)] as clienteApi
+  }
+}
+
+node "Servidor (Flask)" {
+  package "Back-end (API REST)" as back {
+    [Aplicação Flask\n(create_app)] as flask
+
+    package "Controllers" {
+      [AlunoController] as ctrlAluno
+      [EmpresaController] as ctrlEmpresa
+      [InstituicaoController] as ctrlInst
+    }
+
+    package "Services" {
+      [AlunoService] as svcAluno
+      [EmpresaService] as svcEmpresa
+      [InstituicaoService] as svcInst
+      [Erros de negócio] as erros
+      [Validação] as validacao
+    }
+
+    package "Repositories" {
+      [AlunoRepository] as repAluno
+      [EmpresaRepository] as repEmpresa
+      [InstituicaoRepository] as repInst
+      [UsuarioRepository] as repUsuario
+    }
+
+    package "Models (SQLAlchemy)" {
+      [Usuario] as mUsuario
+      [Aluno] as mAluno
+      [EmpresaParceira] as mEmpresa
+      [InstituicaoEnsino] as mInst
+    }
+
+    [Seed\n(instituições iniciais)] as seed
+  }
+}
+
+database "SQLite\n(moedas.db)" as sqlite
+
+interface "API REST (JSON)\n/api/alunos\n/apies" as rest
+
+usuario --> app
+app --> pagAlunos
+app --> pagEmpresas
+pagAlunos --> ui
+pagEmpresas --> ui
+pagAlunos --> formatacao
+pagEmpresas --> formatacao
+pagAlunos --> clienteApi
+pagEmpresas --> clienteApi
+
+clienteApi ..> rest : HTTP / fetch
+rest -- flask
+
+flask --> ctrlAluno
+flask --> ctrlEmpresa
+flask --> ctrlInst
+flask ..> erros : converte em JSON
+flask --> seed
+
+ctrlAluno --> svcAluno
+ctrlEmpresa --> svcEmpresa
+ctrlInst --> svcInst
+
+svcAluno --> validacao
+svcEmpresa --> validacao
+svcAluno ..> erros
+svcEmpresa ..> erros
+svcInst ..> erros
+
+svcAluno --> repAluno
+svcAluno --> repUsuario
+svcAluno --> repInst
+svcEmpresa --> repEmpresa
+svcEmpresa --> repUsuario
+svcInst --> repInst
+svcInst --> repAluno
+seed --> repInst
+
+repAluno --> mAluno
+repEmpresa --> mEmpresa
+repInst --> mInst
+repUsuario --> mUsuario
+
+mAluno --|> mUsuario
+mEmpresa --|> mUsuario
+mAluno --> mInst
+
+mUsuario ..> sqlite : ORM
+mAluno ..> sqlite : ORM
+mEmpresa ..> sqlite : ORM
+mInst ..> sqlite : ORM
+@enduml
