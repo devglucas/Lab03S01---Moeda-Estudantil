@@ -9,3 +9,6 @@ class InstituicaoEnsino(db.Model):
     nome = db.Column(db.String(160), nullable=False, unique=True)
 
     alunos = db.relationship("Aluno", back_populates="instituicao")
+
+    def to_dict(self):
+        return {"id": self.id, "nome": self.nome}

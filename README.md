@@ -85,14 +85,21 @@ As instituições de ensino são pré-cadastradas. O desenvolvimento acontece em
 
 O sistema segue a arquitetura **MVC**, com o back-end e o front-end separados e comunicando-se por uma **API REST** em JSON.
 
-- **Model** (`codigo/back/app/models`): classes que representam as entidades do domínio e são mapeadas para tabelas do banco pelo ORM.
-- **Controller** (`codigo/back/app/controllers`): um *blueprint* do Flask por recurso (alunos, empresas, instituições). Recebe as requisições HTTP, valida os dados, usa os models para ler e gravar no banco e devolve JSON.
 - **View** (`codigo/front`): aplicação React que consome a API e exibe as telas de cadastro e listagem.
+- **Controller** (`codigo/back/app/controllers`): um *blueprint* do Flask por recurso (alunos, empresas, instituições). Só recebe a requisição HTTP, chama o service e devolve JSON.
+- **Model** (`codigo/back/app/models`): classes que representam as entidades do domínio e são mapeadas para tabelas do banco pelo ORM.
+
+No back-end, entre o controller e o model, há mais duas camadas:
+
+- **Service** (`codigo/back/app/services`): concentra as regras de negócio e as validações (campos obrigatórios, CPF, CNPJ, e-mail único entre os perfis, instituição existente). Quando algo está errado, lança um erro de negócio (`DadosInvalidos`, `NaoEncontrado` ou `Conflito`), que a aplicação converte em uma resposta JSON com o status HTTP correspondente (400, 404 ou 409).
+- **Repository** (`codigo/back/app/repositories`): único ponto de acesso ao banco. Faz as consultas, grava e remove as entidades e controla a transação. Os services não usam o SQLAlchemy diretamente.
+
+Com essa separação, o controller não conhece regra de negócio, o service não conhece HTTP nem SQL, e as regras podem ser testadas sem banco, trocando o repositório por um falso.
 
 Fluxo de uma requisição:
 
 ```
-Tela React  ->  fetch (src/api.js)  ->  Controller Flask  ->  Model (SQLAlchemy)  ->  SQLite
+Tela React  ->  fetch (src/api.js)  ->  Controller  ->  Service  ->  Repository  ->  Model (SQLAlchemy)  ->  SQLite
 ```
 
 ### Diagramas
@@ -115,13 +122,14 @@ O grupo escolheu usar um **ORM (Object-Relational Mapping)**, o **SQLAlchemy**, 
 
 - Cada classe do domínio (`Aluno`, `EmpresaParceira`, `InstituicaoEnsino`) é mapeada diretamente para uma tabela, sem escrever SQL para as operações básicas de CRUD.
 - As tabelas são criadas automaticamente a partir dos models na inicialização (`db.create_all()`), o que mantém o código e o banco sempre consistentes.
-- As consultas são feitas com objetos Python (`Aluno.query.filter_by(cpf=cpf)`), o que evita erros de digitação em SQL e protege contra SQL injection.
+- As consultas são feitas com objetos Python (`Aluno.query.filter(Aluno.cpf == cpf)`), o que evita erros de digitação em SQL e protege contra SQL injection.
 - O grupo já tinha experiência com essa abordagem em projetos anteriores, o que acelera o desenvolvimento.
 
 **Como está organizado**
 
 - `app/extensions.py`: instância única do `SQLAlchemy`, compartilhada por toda a aplicação.
 - `app/models/`: as entidades persistentes. Cada model herda de `db.Model` e declara suas colunas, chaves e relacionamentos.
+- `app/repositories/`: um repositório por entidade (`AlunoRepository`, `EmpresaRepository`, `InstituicaoRepository`, `UsuarioRepository`), todos herdando de `BaseRepository`, que implementa buscar por id, salvar e remover. Os repositórios também fazem as consultas de unicidade (`login_em_uso`, `cpf_em_uso`, `cnpj_em_uso`).
 - `app/__init__.py`: configura a conexão (`SQLALCHEMY_DATABASE_URI`), cria as tabelas e cadastra as instituições iniciais (`app/seed.py`).
 
 **Mapeamento da herança**
@@ -252,8 +260,10 @@ Acesse `http://localhost:5173` no navegador.
     │   │   ├── extensions.py      # 🗄️ Instância do SQLAlchemy.
     │   │   ├── seed.py            # 🌱 Instituições de ensino iniciais.
     │   │   ├── validacao.py       # ✅ Funções de validação.
-    │   │   ├── models/            # 🧬 Entidades persistentes (ORM).
-    │   │   └── controllers/       # 🎮 Endpoints REST (blueprints).
+    │   │   ├── controllers/       # 🎮 Endpoints REST (blueprints).
+    │   │   ├── services/          # 🧠 Regras de negócio e erros de negócio.
+    │   │   ├── repositories/      # 🗃️ Acesso ao banco de dados.
+    │   │   └── models/            # 🧬 Entidades persistentes (ORM).
     │   └── tests/                 # 🧪 Testes automatizados (pytest).
     │
     └── front/                     # 💻 Aplicação React
@@ -282,7 +292,7 @@ source venv/bin/activate
 python -m pytest
 ```
 
-Eles cobrem o CRUD completo de aluno e de empresa parceira, a validação de campos obrigatórios, CPF e CNPJ, e as regras de unicidade (e-mail único entre todos os perfis, CPF e CNPJ).
+Eles cobrem o CRUD completo de aluno, empresa parceira e instituição de ensino, a validação de campos obrigatórios, CPF e CNPJ, e as regras de unicidade (e-mail único entre todos os perfis, CPF, CNPJ e nome da instituição). Os testes de `tests/test_services.py` exercitam a camada de serviço sem banco, usando repositórios falsos.
 
 ---
 

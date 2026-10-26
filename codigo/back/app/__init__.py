@@ -1,16 +1,20 @@
-"""Fábrica da aplicação Flask (arquitetura MVC).
+"""Fábrica da aplicação Flask (arquitetura MVC em camadas).
 
 Monta a app, inicializa o banco (SQLite), libera CORS para o front em dev,
-registra os blueprints (alunos, empresas e instituições) e semeia as
-instituições de ensino pré-cadastradas quando a base ainda está vazia.
+registra os blueprints (alunos, empresas e instituições), converte os erros
+dos services em respostas JSON e semeia as instituições de ensino
+pré-cadastradas quando a base ainda está vazia.
+
+Camadas: controllers (HTTP) -> services (regras) -> repositories (banco) -> models.
 """
 import os
 
 from dotenv import load_dotenv
-from flask import Flask
+from flask import Flask, jsonify
 from flask_cors import CORS
 
 from app.extensions import db
+from app.services.erros import ErroDeNegocio
 
 load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env"))
 
@@ -46,6 +50,11 @@ def create_app():
     app.register_blueprint(aluno_bp)
     app.register_blueprint(empresa_bp)
     app.register_blueprint(instituicao_bp)
+
+    # Os services lançam ErroDeNegocio; aqui ele vira {"erro", "campos"} + status.
+    @app.errorhandler(ErroDeNegocio)
+    def erro_de_negocio(erro):
+        return jsonify(erro.to_dict()), erro.status
 
     # Cria as tabelas que ainda não existem e preserva os dados já gravados.
     with app.app_context():
