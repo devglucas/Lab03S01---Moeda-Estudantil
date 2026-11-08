@@ -46,10 +46,14 @@ def create_app():
     from app.controllers.aluno_controller import aluno_bp
     from app.controllers.empresa_controller import empresa_bp
     from app.controllers.instituicao_controller import instituicao_bp
+    from app.controllers.professor_controller import professor_bp
+    from app.controllers.transacao_controller import transacao_bp
 
     app.register_blueprint(aluno_bp)
     app.register_blueprint(empresa_bp)
     app.register_blueprint(instituicao_bp)
+    app.register_blueprint(professor_bp)
+    app.register_blueprint(transacao_bp)
 
     # Os services lançam ErroDeNegocio; aqui ele vira {"erro", "campos"} + status.
     @app.errorhandler(ErroDeNegocio)

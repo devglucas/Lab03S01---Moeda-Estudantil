@@ -8,6 +8,8 @@ from app.repositories.usuario_repository import UsuarioRepository
 from app.repositories.instituicao_repository import InstituicaoRepository
 from app.repositories.aluno_repository import AlunoRepository
 from app.repositories.empresa_repository import EmpresaRepository
+from app.repositories.professor_repository import ProfessorRepository
+from app.repositories.transacao_repository import TransacaoRepository
 
 __all__ = [
     "ErroIntegridade",
@@ -15,4 +17,6 @@ __all__ = [
     "InstituicaoRepository",
     "AlunoRepository",
     "EmpresaRepository",
+    "ProfessorRepository"
+    "TransacaoRepository"
 ]
