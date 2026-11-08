@@ -39,6 +39,7 @@ function recurso(caminho) {
   };
 }
 
+export const professorApi = recurso("/professores");
 export const alunosApi = recurso("/alunos");
 export const empresasApi = recurso("/empresas");
 export const instituicoesApi = recurso("/instituicoes");

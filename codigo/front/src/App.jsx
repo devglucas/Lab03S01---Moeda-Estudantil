@@ -2,10 +2,12 @@ import { useState } from "react";
 
 import Alunos from "./pages/Alunos.jsx";
 import Empresas from "./pages/Empresas.jsx";
+import Professores from "./pages/Professores.jsx";
 
 const ABAS = [
   { id: "alunos", rotulo: "Alunos", Pagina: Alunos },
   { id: "empresas", rotulo: "Empresas parceiras", Pagina: Empresas },
+  { id: "professores", rotulo: "Professores", Pagina: Professores },
 ];
 
 export default function App() {
