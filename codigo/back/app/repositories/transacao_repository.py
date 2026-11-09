@@ -4,7 +4,6 @@ from app.models.transacao import Transacao
 
 class TransacaoRepository:
     def registrar(self, transacao, *entidades_alteradas):
-        """Grava a transação e os saldos alterados em um único commit."""
         db.session.add(transacao)
         for entidade in entidades_alteradas:
             db.session.add(entidade)
@@ -24,3 +23,11 @@ class TransacaoRepository:
             .order_by(Transacao.data.desc())
             .all()
         )
+    
+    def salvar(self, entidade):
+        db.session.add(entidade)
+        db.session.commit()
+        return entidade
+    
+    def listar_todas(self):
+        return Transacao.query.order_by(Transacao.data.desc()).all()

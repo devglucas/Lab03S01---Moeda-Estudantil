@@ -3,7 +3,7 @@ from flask import Blueprint, jsonify, request
 # from app.services.professor_service import NaoEncontradoError, ValidacaoError
 from app.services.transacao_service import TransacaoService
 
-transacao_bp = Blueprint("transacoes", __name__, url_prefix="/transacoes")
+transacao_bp = Blueprint("transacoes", __name__, url_prefix="/api/transacoes")
 service = TransacaoService()
 
 
@@ -25,9 +25,7 @@ def _extrato_json(extrato):
 
 @transacao_bp.get("")
 def buscar_todas_transacoes():
-    # Com autenticação, professorId deve vir do usuário logado, não do corpo.
-    transacao = service.enviar_moedas(request.get_json(silent=True) or {})
-    return jsonify(transacao.to_dict()), 201
+    return jsonify([t.to_dict() for t in service.listar_todas()])
 
 
 @transacao_bp.post("")

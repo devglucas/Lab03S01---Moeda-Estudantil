@@ -86,5 +86,13 @@ class TransacaoService:
             raise NaoEncontrado("Professor não encontrado")
 
         professor.receber_moedas_semestre()  # saldo += 1000
-        self.repository.salvar(professor)
+        self.repository.salvar(professor)    # grava no banco (commit)
         return professor
+
+    def salvar(self, entidade):
+        db.session.add(entidade)
+        db.session.commit()
+        return entidade
+    
+    def listar_todas(self):
+        return self.repository.listar_todas()
