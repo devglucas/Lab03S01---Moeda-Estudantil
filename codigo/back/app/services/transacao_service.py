@@ -80,19 +80,5 @@ class TransacaoService:
             "transacoes": self.repository.listar_por_aluno(aluno_id),
         }
 
-    def recebe1000(self, professor_id):
-        professor = db.session.get(Professor, professor_id)
-        if not professor:
-            raise NaoEncontrado("Professor não encontrado")
-
-        professor.receber_moedas_semestre()  # saldo += 1000
-        self.repository.salvar(professor)    # grava no banco (commit)
-        return professor
-
-    def salvar(self, entidade):
-        db.session.add(entidade)
-        db.session.commit()
-        return entidade
-    
     def listar_todas(self):
         return self.repository.listar_todas()

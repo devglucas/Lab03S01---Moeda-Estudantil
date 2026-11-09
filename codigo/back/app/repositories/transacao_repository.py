@@ -24,10 +24,5 @@ class TransacaoRepository:
             .all()
         )
     
-    def salvar(self, entidade):
-        db.session.add(entidade)
-        db.session.commit()
-        return entidade
-    
     def listar_todas(self):
         return Transacao.query.order_by(Transacao.data.desc()).all()

@@ -45,6 +45,8 @@ class ProfessorService:
             saldo=0,
         )
         professor.definir_senha(dados["senha"])
+        # Decisão do grupo: o professor já nasce com as moedas do semestre.
+        professor.receber_moedas_semestre()
         return self._salvar(professor)
 
     # def atualizar(self, aluno_id, dados):
