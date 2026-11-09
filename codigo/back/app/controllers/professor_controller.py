@@ -1,4 +1,4 @@
-"""Controller dos professores: cadastro, consulta, crédito e envio de moedas.
+"""Controller dos professores: cadastro e consulta.
 
 Só traduz HTTP <-> Python; as regras ficam em ``ProfessorService`` e ``TransacaoService``.
 """
@@ -27,17 +27,3 @@ def listar():
 @professor_bp.get("/<int:professor_id>")
 def buscar(professor_id):
     return jsonify(servico.buscar(professor_id).to_dict())
-
-
-# @professor_bp.post("/<int:professor_id>/recebe-1000")
-# def recebe1000(professor_id):
-#     professor = servico_transacao.recebe1000(professor_id)
-#     return jsonify(professor.to_dict())
-
-
-@professor_bp.post("/<int:professor_id>/enviar-moedas")
-def enviar_moedas(professor_id):
-    transacao = servico_transacao.enviar_moedas(
-        professor_id, request.get_json(silent=True)
-    )
-    return jsonify(transacao.to_dict()), 201
