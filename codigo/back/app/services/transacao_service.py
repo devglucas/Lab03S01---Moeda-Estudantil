@@ -1,7 +1,7 @@
 from app.extensions import db
 from app.models.aluno import Aluno
 from app.models.professor import Professor
-from app.models.transacao import Transacao
+from app.models.transacao import EnvioMoeda
 from app.repositories.transacao_repository import TransacaoRepository
 from app.services.email_service import EmailService
 # from app.services.professor_service import NaoEncontradoError, ValidacaoError
@@ -44,7 +44,7 @@ class TransacaoService:
             raise DadosInvalidos(str(e))
         aluno.saldo += valor
 
-        transacao = Transacao(
+        transacao = EnvioMoeda(
             professor_id=professor.id, aluno_id=aluno.id, valor=valor, mensagem=mensagem
         )
         self.repository.registrar(transacao, professor, aluno)

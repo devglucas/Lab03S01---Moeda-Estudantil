@@ -1,28 +1,31 @@
+"""Repositório das transações (envios de moedas e trocas por vantagem)."""
 from app.extensions import db
-from app.models.transacao import Transacao
+from app.models.transacao import EnvioMoeda, Transacao
+from app.repositories.base_repository import BaseRepository
 
 
-class TransacaoRepository:
+class TransacaoRepository(BaseRepository):
+    model = Transacao
+
     def registrar(self, transacao, *entidades_alteradas):
+        """Grava a transação e os saldos alterados em um único commit."""
         db.session.add(transacao)
-        for entidade in entidades_alteradas:
-            db.session.add(entidade)
-        db.session.commit()
+        db.session.add_all(entidades_alteradas)
+        self._confirmar()
         return transacao
 
+    def listar_todas(self):
+        return self._mais_recentes(Transacao.query).all()
+
     def listar_por_professor(self, professor_id):
-        return (
-            Transacao.query.filter_by(professor_id=professor_id)
-            .order_by(Transacao.data.desc())
-            .all()
-        )
+        """Extrato do professor: os envios que ele realizou."""
+        consulta = EnvioMoeda.query.filter_by(professor_id=professor_id)
+        return self._mais_recentes(consulta).all()
 
     def listar_por_aluno(self, aluno_id):
-        return (
-            Transacao.query.filter_by(aluno_id=aluno_id)
-            .order_by(Transacao.data.desc())
-            .all()
-        )
-    
-    def listar_todas(self):
-        return Transacao.query.order_by(Transacao.data.desc()).all()
+        """Extrato do aluno: moedas recebidas e trocas por vantagem."""
+        consulta = Transacao.query.filter_by(aluno_id=aluno_id)
+        return self._mais_recentes(consulta).all()
+
+    def _mais_recentes(self, consulta):
+        return consulta.order_by(Transacao.data.desc(), Transacao.id.desc())
