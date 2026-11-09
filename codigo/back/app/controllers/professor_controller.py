@@ -1,4 +1,4 @@
-"""Controller dos professores: cadastro e consulta.
+"""Controller dos professores: CRUD em /api/professores.
 
 Só traduz HTTP <-> Python; as regras ficam em ``ProfessorService``.
 """
@@ -24,3 +24,15 @@ def listar():
 @professor_bp.get("/<int:professor_id>")
 def buscar(professor_id):
     return jsonify(servico.buscar(professor_id).to_dict())
+
+
+@professor_bp.put("/<int:professor_id>")
+def atualizar(professor_id):
+    professor = servico.atualizar(professor_id, request.get_json(silent=True))
+    return jsonify(professor.to_dict())
+
+
+@professor_bp.delete("/<int:professor_id>")
+def remover(professor_id):
+    servico.remover(professor_id)
+    return "", 204

@@ -27,5 +27,12 @@ class TransacaoRepository(BaseRepository):
         consulta = Transacao.query.filter_by(aluno_id=aluno_id)
         return self._mais_recentes(consulta).all()
 
+    def existe_para_professor(self, professor_id):
+        consulta = EnvioMoeda.query.filter_by(professor_id=professor_id)
+        return db.session.query(consulta.exists()).scalar()
+
+    def existe_para_aluno(self, aluno_id):
+        return self._existe(Transacao.aluno_id, aluno_id)
+
     def _mais_recentes(self, consulta):
         return consulta.order_by(Transacao.data.desc(), Transacao.id.desc())
