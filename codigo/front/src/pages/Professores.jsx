@@ -83,10 +83,10 @@ export default function Professores() {
     try {
       if (editandoId) {
         await professorApi.atualizar(editandoId, dados);
-        setAviso({ tipo: "sucesso", texto: "Aluno atualizado com sucesso." });
+        setAviso({ tipo: "sucesso", texto: "Professor atualizado com sucesso." });
       } else {
         await professorApi.criar(dados);
-        setAviso({ tipo: "sucesso", texto: "Aluno cadastrado com sucesso." });
+        setAviso({ tipo: "sucesso", texto: "Professor cadastrado com sucesso." });
       }
       limpar();
       await carregar();
@@ -157,9 +157,9 @@ export default function Professores() {
       </form>
 
       <div className="cartao">
-        <h2>Alunos cadastrados</h2>
+        <h2>Professores cadastrados</h2>
         {professores.length === 0 ? (
-          <p className="vazio">Nenhum aluno cadastrado.</p>
+          <p className="vazio">Nenhum professor cadastrado.</p>
         ) : (
           <div className="tabela-rolagem">
             <table>
@@ -179,7 +179,6 @@ export default function Professores() {
                     <td>{professor.nome}</td>
                     <td>{professor.email}</td>
                     <td>{mascaraCpf(professor.cpf)}</td>
-                    {/* <td>{aluno.curso}</td> */}
                     <td>{professor.instituicaoNome}</td>
                     <td className="numero">{professor.saldo}</td>
                     <td className="linha-acoes">
