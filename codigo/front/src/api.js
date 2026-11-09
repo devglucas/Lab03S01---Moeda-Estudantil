@@ -40,6 +40,10 @@ function recurso(caminho) {
 }
 
 export const transacoesApi = recurso("/transacoes");
+export const extratoApi = {
+  professor: (id) => requisicao(`/transacoes/extrato/professor/${id}`),
+  aluno: (id) => requisicao(`/transacoes/extrato/aluno/${id}`),
+};
 export const professorApi = recurso("/professores");
 export const alunosApi = recurso("/alunos");
 export const empresasApi = recurso("/empresas");

@@ -232,6 +232,12 @@ th {
   font-weight: 600;
 }
 
+.saldo {
+  margin: 0 0 12px;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
 .numero {
   text-align: right;
   font-variant-numeric: tabular-nums;
