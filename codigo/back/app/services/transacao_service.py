@@ -6,18 +6,18 @@ from app.repositories import (
     ProfessorRepository,
     TransacaoRepository,
 )
-from app.services.email_service import EmailService
 from app.services.erros import Conflito, DadosInvalidos, NaoEncontrado, exigir_json
+from app.services.notificacao_service import NotificacaoService
 
 TAMANHO_MAXIMO_MENSAGEM = 500
 
 
 class TransacaoService:
-    def __init__(self, transacoes=None, professores=None, alunos=None, email_service=None):
+    def __init__(self, transacoes=None, professores=None, alunos=None, notificacoes=None):
         self.transacoes = transacoes or TransacaoRepository()
         self.professores = professores or ProfessorRepository()
         self.alunos = alunos or AlunoRepository()
-        self.email_service = email_service or EmailService()
+        self.notificacoes = notificacoes or NotificacaoService()
 
     def listar_todas(self):
         return self.transacoes.listar_todas()
@@ -52,7 +52,7 @@ class TransacaoService:
         except ErroIntegridade:
             raise Conflito("Não foi possível registrar o envio de moedas.")
 
-        self._notificar_aluno(aluno, professor, envio)
+        self.notificacoes.notificar_envio_moedas(envio)
         return envio
 
     def extrato_professor(self, professor_id):
@@ -102,15 +102,6 @@ class TransacaoService:
         if aluno is None:
             raise NaoEncontrado("Aluno não encontrado")
         return aluno
-
-    def _notificar_aluno(self, aluno, professor, transacao):
-        corpo = (
-            f"Olá, {aluno.nome}!\n\n"
-            f"O professor {professor.nome} enviou {transacao.valor} moeda(s) para você.\n"
-            f"Motivo: {transacao.mensagem}\n\n"
-            f"Seu saldo atual é de {aluno.saldo} moeda(s)."
-        )
-        self.email_service.enviar(aluno.email, "Você recebeu moedas!", corpo)
 
 
 def _inteiro_positivo(valor):
