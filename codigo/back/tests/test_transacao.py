@@ -160,3 +160,13 @@ def test_extrato_do_aluno_traz_envios_e_trocas(client):
 def test_extrato_de_usuario_inexistente(client):
     assert client.get("/api/transacoes/extrato/professor/999").status_code == 404
     assert client.get("/api/transacoes/extrato/aluno/999").status_code == 404
+
+
+def test_nao_remove_quem_tem_transacoes(client):
+    professor, aluno, envio = _cenario(client)
+    client.post("/api/transacoes", json=envio)
+
+    assert client.delete(f"/api/alunos/{aluno['id']}").status_code == 409
+    assert client.delete(f"/api/professores/{professor['id']}").status_code == 409
+    assert client.get("/api/transacoes").status_code == 200
+    assert client.get(f"/api/transacoes/extrato/professor/{professor['id']}").status_code == 200
