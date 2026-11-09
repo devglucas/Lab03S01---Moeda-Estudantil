@@ -144,7 +144,7 @@ O grupo escolheu usar um **ORM (Object-Relational Mapping)**, o **SQLAlchemy**, 
 
 **Atomicidade do envio de moedas**
 
-O débito do professor, o crédito do aluno e o registro do `EnvioMoeda` são gravados no mesmo `commit`. Se a gravação falhar, é feito `rollback` e nenhuma das alterações é persistida. Os e-mails só são enviados depois do `commit`, e uma falha no envio do e-mail não desfaz a transação.
+O débito do professor, o crédito do aluno e o registro do `EnvioMoeda` são gravados no mesmo `commit`. Se a gravação falhar, é feito `rollback` e nenhuma das alterações é persistida. Os e-mails só são enviados depois do `commit`, em segundo plano, para a tela não ficar esperando o servidor de e-mail. Uma falha no envio não desfaz a transação e fica registrada apenas no log do back-end.
 
 **Banco de dados**
 
