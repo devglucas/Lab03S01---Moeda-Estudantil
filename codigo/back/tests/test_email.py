@@ -1,4 +1,5 @@
 import smtplib
+import threading
 from unittest import mock
 
 from sqlalchemy import event
@@ -163,3 +164,27 @@ def test_desiste_depois_de_varias_recusas_sem_desfazer_o_envio(client):
     assert resp.status_code == 201
     assert conexao.send_message.call_count == 6  # 3 tentativas para cada e-mail
     assert client.get(f"/api/alunos/{envio['alunoId']}").get_json()["saldo"] == 100
+
+
+def test_fora_dos_testes_a_requisicao_nao_espera_o_email(client):
+    envio = _envio(client)
+    _configurar_smtp(client)
+    client.application.testing = False
+    liberar = threading.Event()
+    entregues = threading.Semaphore(0)
+
+    def entregar(_mensagem):
+        assert liberar.wait(timeout=5)
+        entregues.release()
+
+    with mock.patch("smtplib.SMTP") as smtp:
+        smtp.return_value.__enter__.return_value.send_message.side_effect = entregar
+        resp = client.post("/api/transacoes", json=envio)
+
+        # A resposta chegou com o servidor de e-mail ainda ocupado.
+        assert resp.status_code == 201
+        assert not liberar.is_set()
+
+        liberar.set()
+        assert entregues.acquire(timeout=5)
+        assert entregues.acquire(timeout=5)
