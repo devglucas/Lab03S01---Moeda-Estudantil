@@ -1,3 +1,4 @@
+import smtplib
 from unittest import mock
 
 from sqlalchemy import event
@@ -29,7 +30,11 @@ def _envio(client):
 
 def _configurar_smtp(client):
     client.application.config.update(
-        MAIL_HOST="smtp.teste", MAIL_USER="usuario", MAIL_PASSWORD="segredo"
+        MAIL_HOST="smtp.teste",
+        MAIL_PORT=587,
+        MAIL_USER="usuario",
+        MAIL_PASSWORD="segredo",
+        MAIL_USE_TLS=True,
     )
 
 
@@ -128,3 +133,33 @@ def test_sem_servidor_configurado_nao_abre_conexao(client):
 
     assert resp.status_code == 201
     smtp.assert_not_called()
+
+
+def test_tenta_de_novo_quando_o_servidor_limita_os_envios(client):
+    envio = _envio(client)
+    _configurar_smtp(client)
+    limite = smtplib.SMTPDataError(550, b"Too many emails per second")
+
+    with mock.patch("smtplib.SMTP") as smtp, mock.patch("time.sleep") as espera:
+        conexao = smtp.return_value.__enter__.return_value
+        conexao.send_message.side_effect = [None, limite, None]
+        resp = client.post("/api/transacoes", json=envio)
+
+    assert resp.status_code == 201
+    assert conexao.send_message.call_count == 3
+    espera.assert_called_once()
+
+
+def test_desiste_depois_de_varias_recusas_sem_desfazer_o_envio(client):
+    envio = _envio(client)
+    _configurar_smtp(client)
+    limite = smtplib.SMTPDataError(550, b"Too many emails per second")
+
+    with mock.patch("smtplib.SMTP") as smtp, mock.patch("time.sleep"):
+        conexao = smtp.return_value.__enter__.return_value
+        conexao.send_message.side_effect = limite
+        resp = client.post("/api/transacoes", json=envio)
+
+    assert resp.status_code == 201
+    assert conexao.send_message.call_count == 6  # 3 tentativas para cada e-mail
+    assert client.get(f"/api/alunos/{envio['alunoId']}").get_json()["saldo"] == 100
