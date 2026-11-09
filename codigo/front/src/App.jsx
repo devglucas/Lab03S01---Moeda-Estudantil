@@ -9,7 +9,7 @@ const ABAS = [
   { id: "alunos", rotulo: "Alunos", Pagina: Alunos },
   { id: "empresas", rotulo: "Empresas parceiras", Pagina: Empresas },
   { id: "professores", rotulo: "Professores", Pagina: Professores },
-  { id: "transacoes", rotulo: "Transacoes", Pagina: Transacao }
+  { id: "transacoes", rotulo: "Transações", Pagina: Transacao }
 ];
 
 export default function App() {

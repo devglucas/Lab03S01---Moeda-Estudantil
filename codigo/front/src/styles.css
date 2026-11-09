@@ -94,7 +94,8 @@ main {
 }
 
 input,
-select {
+select,
+textarea {
   width: 100%;
   padding: 8px 10px;
   font: inherit;
@@ -105,12 +106,18 @@ select {
 }
 
 input:focus,
-select:focus {
+select:focus,
+textarea:focus {
   outline: 2px solid var(--primaria);
   outline-offset: -1px;
 }
 
-input:disabled {
+textarea {
+  resize: vertical;
+}
+
+input:disabled,
+select:disabled {
   background: var(--fundo);
   color: var(--texto-suave);
 }
