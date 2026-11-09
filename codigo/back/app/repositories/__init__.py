@@ -17,6 +17,6 @@ __all__ = [
     "InstituicaoRepository",
     "AlunoRepository",
     "EmpresaRepository",
-    "ProfessorRepository"
-    "TransacaoRepository"
+    "ProfessorRepository",
+    "TransacaoRepository",
 ]
