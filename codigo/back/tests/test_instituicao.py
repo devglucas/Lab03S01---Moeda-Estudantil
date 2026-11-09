@@ -39,3 +39,13 @@ def test_nao_remove_instituicao_com_alunos(client):
     client.post("/api/alunos", json=ALUNO)
     resp = client.delete("/api/instituicoes/1")
     assert resp.status_code == 409
+
+
+def test_nao_remove_instituicao_com_professores(client):
+    client.post("/api/professores", json={
+        "nome": "Carla", "email": "carla@puc.br", "cpf": "11111111111",
+        "departamento": "Computação", "instituicaoId": 1, "senha": "senha123",
+    })
+    resp = client.delete("/api/instituicoes/1")
+    assert resp.status_code == 409
+    assert "professores" in resp.get_json()["erro"]
