@@ -20,13 +20,12 @@ class EmailService:
             log.warning("MAIL_HOST não configurado; e-mail para %s não enviado", destinatario)
             return False
 
-        msg = EmailMessage()
-        msg["From"] = cfg["MAIL_FROM"]
-        msg["To"] = destinatario
-        msg["Subject"] = assunto
-        msg.set_content(corpo)
-
         try:
+            msg = EmailMessage()
+            msg["From"] = cfg["MAIL_FROM"]
+            msg["To"] = destinatario
+            msg["Subject"] = assunto
+            msg.set_content(corpo)
             self._entregar(cfg, msg)
             return True
         except Exception:
