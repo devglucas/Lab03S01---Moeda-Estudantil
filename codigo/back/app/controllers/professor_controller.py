@@ -15,7 +15,7 @@ servico_transacao = TransacaoService()
 @professor_bp.post("")
 def criar():
     professor = servico.criar(request.get_json(silent=True))
-    enviar_moedas(professor.id)
+    servico_transacao.recebe1000(professor.id)  # só para teste: nasce com 1000 moedas
     return jsonify(professor.to_dict()), 201
 
 
@@ -30,9 +30,9 @@ def buscar(professor_id):
 
 
 # @professor_bp.post("/<int:professor_id>/recebe-1000")
-def recebe1000(professor_id):
-    professor = servico_transacao.recebe1000(professor_id)
-    return jsonify(professor.to_dict())
+# def recebe1000(professor_id):
+#     professor = servico_transacao.recebe1000(professor_id)
+#     return jsonify(professor.to_dict())
 
 
 @professor_bp.post("/<int:professor_id>/enviar-moedas")
