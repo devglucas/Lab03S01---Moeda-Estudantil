@@ -1,6 +1,10 @@
 POST/PUT /api/alunos  (na edicao a senha e opcional)
 POST/PUT /api/instituicoes
 POST/PUT /api/empresas  (na edicao a senha e opcional)
+POST/PUT /api/professores  (na edicao a senha e opcional; ao ser criado recebe 1000 moedas)
+POST /api/transacoes  (envio de moedas)
+GET /api/transacoes/extrato/professor/{id}
+GET /api/transacoes/extrato/aluno/{id}
 
 {
   "nome": "João",
@@ -37,4 +41,20 @@ POST/PUT /api/empresas  (na edicao a senha e opcional)
   "email": "testes@testes.com",
   "cnpj": "12345678000190",
   "senha": "testes1"
+}
+
+{
+  "nome": "Carla Dias",
+  "email": "carla@puc.br",
+  "cpf": "11122233344",
+  "departamento": "Computacao",
+  "instituicaoId": 1,
+  "senha": "senha123"
+}
+
+{
+  "professorId": 1,
+  "alunoId": 2,
+  "valor": 100,
+  "mensagem": "Otima participacao em aula"
 }

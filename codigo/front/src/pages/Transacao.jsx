@@ -174,17 +174,17 @@ export default function Transacoes() {
                   <th>Professor</th>
                   <th>Aluno</th>
                   <th className="numero">Valor</th>
-                  <th>Mensagem</th>
+                  <th>Motivo</th>
                 </tr>
               </thead>
               <tbody>
                 {transacoes.map((transacao) => (
                   <tr key={transacao.id}>
                     <td>{new Date(transacao.data).toLocaleString("pt-BR")}</td>
-                    <td>{transacao.professorNome}</td>
+                    <td>{transacao.professorNome ?? "-"}</td>
                     <td>{transacao.alunoNome}</td>
                     <td className="numero">{transacao.valor}</td>
-                    <td>{transacao.mensagem}</td>
+                    <td>{transacao.mensagem ?? `Cupom ${transacao.codigo}`}</td>
                   </tr>
                 ))}
               </tbody>

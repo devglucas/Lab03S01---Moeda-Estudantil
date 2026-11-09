@@ -1,8 +1,8 @@
-"""Model dos alunos (cadastro, saldo de moedas e instituição de ensino).
+"""Model dos professores (cadastro, saldo de moedas e instituição de ensino).
 
-O aluno é um ``Usuario``: herda ``login`` (o e-mail) e ``senha_hash``. O ``saldo`` é
-sempre alterado por transações (recebimento de moedas e troca por vantagem),
-nunca direto pela tela de cadastro.
+O professor é um ``Usuario``: herda ``login`` (o e-mail) e ``senha_hash``. O ``saldo``
+é sempre alterado pelo crédito do semestre e pelos envios de moedas, nunca direto
+pela tela de cadastro.
 """
 from app.extensions import db
 from app.models.usuario import Usuario
@@ -16,7 +16,7 @@ class Professor(Usuario):
     nome = db.Column(db.String(120), nullable=False)
     email = db.Column(db.String(160), nullable=False, unique=True)
     cpf = db.Column(db.String(11), nullable=False, unique=True)  # só dígitos
-    departamento = db.Column(db.String(20), nullable=False)
+    departamento = db.Column(db.String(120), nullable=False)
     saldo = db.Column(db.Integer, nullable=False, default=0)
 
     instituicao_id = db.Column(

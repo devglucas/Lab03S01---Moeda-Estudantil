@@ -4,6 +4,7 @@ from app.repositories import (
     AlunoRepository,
     ErroIntegridade,
     InstituicaoRepository,
+    TransacaoRepository,
     UsuarioRepository,
 )
 from app.services.erros import Conflito, DadosInvalidos, NaoEncontrado, exigir_json
@@ -13,10 +14,11 @@ CAMPOS_ALUNO = ["nome", "email", "cpf", "rg", "endereco", "curso", "instituicaoI
 
 
 class AlunoService:
-    def __init__(self, alunos=None, usuarios=None, instituicoes=None):
+    def __init__(self, alunos=None, usuarios=None, instituicoes=None, transacoes=None):
         self.alunos = alunos or AlunoRepository()
         self.usuarios = usuarios or UsuarioRepository()
         self.instituicoes = instituicoes or InstituicaoRepository()
+        self.transacoes = transacoes or TransacaoRepository()
 
     def listar(self):
         return self.alunos.listar()
@@ -76,6 +78,11 @@ class AlunoService:
 
     def remover(self, aluno_id):
         aluno = self.buscar(aluno_id)
+
+        # O extrato depende do histórico de transações.
+        if self.transacoes.existe_para_aluno(aluno_id):
+            raise Conflito("Não é possível remover um aluno que já tem transações.")
+
         try:
             self.alunos.remover(aluno)
         except ErroIntegridade:

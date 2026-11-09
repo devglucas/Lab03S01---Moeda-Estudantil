@@ -1,9 +1,10 @@
-"""Regras de negócio dos alunos (cadastro, edição e exclusão)."""
+"""Regras de negócio dos professores (cadastro, edição e exclusão)."""
 from app.models.professor import Professor
 from app.repositories import (
     ProfessorRepository,
     ErroIntegridade,
     InstituicaoRepository,
+    TransacaoRepository,
     UsuarioRepository,
 )
 from app.services.erros import Conflito, DadosInvalidos, NaoEncontrado, exigir_json
@@ -13,10 +14,11 @@ CAMPOS_PROFESSOR = ["nome", "email", "cpf", "departamento", "instituicaoId"]
 
 
 class ProfessorService:
-    def __init__(self, professores=None, usuarios=None, instituicoes=None):
+    def __init__(self, professores=None, usuarios=None, instituicoes=None, transacoes=None):
         self.professor = professores or ProfessorRepository()
         self.usuarios = usuarios or UsuarioRepository()
         self.instituicoes = instituicoes or InstituicaoRepository()
+        self.transacoes = transacoes or TransacaoRepository()
 
     def listar(self):
         return self.professor.listar()
@@ -45,42 +47,47 @@ class ProfessorService:
             saldo=0,
         )
         professor.definir_senha(dados["senha"])
+        # Decisão do grupo: o professor já nasce com as moedas do semestre.
+        professor.receber_moedas_semestre()
         return self._salvar(professor)
 
-    # def atualizar(self, aluno_id, dados):
-    #     aluno = self.buscar(aluno_id)
-    #     dados = exigir_json(dados)
-    #     instituicao = self._validar(dados, CAMPOS_ALUNO)
+    def atualizar(self, professor_id, dados):
+        professor = self.buscar(professor_id)
+        dados = exigir_json(dados)
+        instituicao = self._validar(dados, CAMPOS_PROFESSOR)
 
-    #     email = texto(dados, "email").lower()
-    #     cpf = apenas_digitos(texto(dados, "cpf"))
-    #     self._verificar_unicos(email, cpf, aluno_id)
+        email = texto(dados, "email").lower()
+        cpf = apenas_digitos(texto(dados, "cpf"))
+        self._verificar_unicos(email, cpf, professor_id)
 
-    #     aluno.nome = texto(dados, "nome")
-    #     aluno.email = email
-    #     aluno.login = email
-    #     aluno.cpf = cpf
-    #     aluno.rg = texto(dados, "rg")
-    #     aluno.endereco = texto(dados, "endereco")
-    #     aluno.curso = texto(dados, "curso")
-    #     aluno.instituicao_id = instituicao.id
+        professor.nome = texto(dados, "nome")
+        professor.email = email
+        professor.login = email
+        professor.cpf = cpf
+        professor.departamento = texto(dados, "departamento")
+        professor.instituicao_id = instituicao.id
 
-    #     # Senha é opcional na edição: só troca se vier preenchida.
-    #     senha = dados.get("senha")
-    #     if senha:
-    #         aluno.definir_senha(senha)
+        # Senha é opcional na edição: só troca se vier preenchida.
+        senha = dados.get("senha")
+        if senha:
+            professor.definir_senha(senha)
 
-    #     return self._salvar(aluno)
+        return self._salvar(professor)
 
-    # def remover(self, aluno_id):
-    #     aluno = self.buscar(aluno_id)
-    #     try:
-    #         self.alunos.remover(aluno)
-    #     except ErroIntegridade:
-    #         raise Conflito(
-    #             "Não foi possível remover o aluno. "
-    #             "Verifique se existem registros vinculados."
-    #         )
+    def remover(self, professor_id):
+        professor = self.buscar(professor_id)
+
+        # O extrato depende do histórico de envios.
+        if self.transacoes.existe_para_professor(professor_id):
+            raise Conflito("Não é possível remover um professor que já enviou moedas.")
+
+        try:
+            self.professor.remover(professor)
+        except ErroIntegridade:
+            raise Conflito(
+                "Não foi possível remover o professor. "
+                "Verifique se existem registros vinculados."
+            )
 
     def _validar(self, dados, obrigatorios):
         """Valida o corpo da requisição e devolve a instituição escolhida."""
@@ -117,8 +124,8 @@ class ProfessorService:
         if self.professor.cpf_em_uso(cpf, professor_id):
             raise Conflito("CPF já cadastrado")
 
-    def _salvar(self, aluno):
+    def _salvar(self, professor):
         try:
-            return self.professor.salvar(aluno)
+            return self.professor.salvar(professor)
         except ErroIntegridade:
             raise Conflito("E-mail ou CPF já cadastrado")

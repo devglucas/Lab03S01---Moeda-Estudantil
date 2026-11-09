@@ -1,7 +1,7 @@
 """Fábrica da aplicação Flask (arquitetura MVC em camadas).
 
 Monta a app, inicializa o banco (SQLite), libera CORS para o front em dev,
-registra os blueprints (alunos, empresas e instituições), converte os erros
+registra os blueprints (alunos, professores, empresas, instituições e transações), converte os erros
 dos services em respostas JSON e semeia as instituições de ensino
 pré-cadastradas quando a base ainda está vazia.
 
@@ -31,6 +31,15 @@ def create_app():
     )
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config["JSON_AS_ASCII"] = False
+
+    # Servidor de e-mail. As credenciais vêm do ambiente (.env fora do git);
+    # sem MAIL_HOST os e-mails são apenas registrados no log.
+    app.config["MAIL_HOST"] = os.environ.get("MAIL_HOST", "")
+    app.config["MAIL_PORT"] = int(os.environ.get("MAIL_PORT", "587"))
+    app.config["MAIL_USER"] = os.environ.get("MAIL_USER", "")
+    app.config["MAIL_PASSWORD"] = os.environ.get("MAIL_PASSWORD", "")
+    app.config["MAIL_FROM"] = os.environ.get("MAIL_FROM", "nao-responda@moeda.local")
+    app.config["MAIL_USE_TLS"] = os.environ.get("MAIL_USE_TLS", "true").lower() == "true"
 
     db.init_app(app)
 

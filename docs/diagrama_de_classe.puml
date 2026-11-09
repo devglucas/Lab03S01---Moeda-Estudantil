@@ -16,7 +16,7 @@ class Professor {
   - departamento : String
   - saldo : int
   + creditarSemestre() : void
-  + enviarMoedas(aluno : Aluno, valor : int, motivo : String) : EnvioMoedas
+  + enviarMoedas(aluno : Aluno, valor : int, motivo : String) : EnvioMoeda
   + possuiSaldo(valor : int) : boolean
 }
 
@@ -54,7 +54,7 @@ abstract class Transacao {
   - valor : int
 }
 
-class EnvioMoedas {
+class EnvioMoeda {
   - mensagem : String
 }
 
@@ -71,7 +71,7 @@ interface ServicoEmail {
 }
 
 class NotificacaoEmail {
-  + notificarRecebimentoMoedas(envio : EnvioMoedas) : void
+  + notificarRecebimentoMoedas(envio : EnvioMoeda) : void
   + enviarCupomAoAluno(troca : TrocaVantagem) : void
   + enviarConferenciaAoParceiro(troca : TrocaVantagem) : void
 }
@@ -85,17 +85,17 @@ InstituicaoEnsino "1" o-- "0..*" Aluno : estuda em
 
 EmpresaParceira "1" *-- "1..*" Vantagem : oferece
 
-Transacao <|-- EnvioMoedas
+Transacao <|-- EnvioMoeda
 Transacao <|-- TrocaVantagem
 
-Professor "1" --> "0..*" EnvioMoedas : realiza
-Aluno "1" --> "0..*" EnvioMoedas : recebe
+Professor "1" --> "0..*" EnvioMoeda : realiza
+Aluno "1" --> "0..*" EnvioMoeda : recebe
 
 Aluno "1" --> "0..*" TrocaVantagem : realiza
 Vantagem "1" <-- "0..*" TrocaVantagem : resgatada em
 TrocaVantagem "1" *-- "1" Cupom : gera
 
 ServicoEmail <|.. NotificacaoEmail
-NotificacaoEmail ..> EnvioMoedas
+NotificacaoEmail ..> EnvioMoeda
 NotificacaoEmail ..> TrocaVantagem
 @enduml

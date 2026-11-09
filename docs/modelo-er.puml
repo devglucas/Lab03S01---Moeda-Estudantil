@@ -34,7 +34,7 @@ entity "alunos" as alunos #FFFFFF ##333333 {
   * instituicao_id : INTEGER <<FK>>
 }
 
-entity "professores" as professores <<planejada>> #EEEEEE ##[dashed]888888 {
+entity "professores" as professores #FFFFFF ##333333 {
   * id : INTEGER <<PK, FK>>
   --
   * nome : VARCHAR(120)
@@ -63,24 +63,26 @@ entity "vantagens" as vantagens <<planejada>> #EEEEEE ##[dashed]888888 {
   * empresa_id : INTEGER <<FK>>
 }
 
-entity "envios_moeda" as envios <<planejada>> #EEEEEE ##[dashed]888888 {
+entity "transacoes" as transacoes #FFFFFF ##333333 {
   * id : INTEGER <<PK>>
   --
+  * tipo : VARCHAR(20)
+  * valor : INTEGER
   * data : DATETIME
-  * quantidade : INTEGER
-  * motivo : TEXT
-  * professor_id : INTEGER <<FK>>
   * aluno_id : INTEGER <<FK>>
 }
 
-entity "trocas_vantagem" as trocas <<planejada>> #EEEEEE ##[dashed]888888 {
-  * id : INTEGER <<PK>>
+entity "envios_moeda" as envios #FFFFFF ##333333 {
+  * id : INTEGER <<PK, FK>>
   --
-  * data : DATETIME
-  * quantidade : INTEGER
+  * mensagem : VARCHAR(500)
+  * professor_id : INTEGER <<FK>>
+}
+
+entity "trocas_vantagem" as trocas #FFFFFF ##333333 {
+  * id : INTEGER <<PK, FK>>
+  --
   * codigo : VARCHAR(20) <<UNIQUE>>
-  * aluno_id : INTEGER <<FK>>
-  * vantagem_id : INTEGER <<FK>>
 }
 
 ' Herança (joined table): cada perfil compartilha o id de usuarios
@@ -93,10 +95,13 @@ instituicoes ||--o{ professores : "vinculado a"
 
 empresas ||--o{ vantagens : "oferece"
 
-professores ||--o{ envios : "envia"
-alunos ||--o{ envios : "recebe"
+alunos ||--o{ transacoes : "participa de"
 
-alunos ||--o{ trocas : "realiza"
-vantagens ||--o{ trocas : "resgatada em"
+' Herança (joined table): cada tipo compartilha o id de transacoes
+transacoes ||--o| envios : "é um"
+transacoes ||--o| trocas : "é um"
+
+professores ||--o{ envios : "envia"
+vantagens ||..o{ trocas : "resgatada em"
 
 @enduml

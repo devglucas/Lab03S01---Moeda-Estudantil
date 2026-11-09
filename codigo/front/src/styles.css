@@ -80,6 +80,7 @@ main {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 12px 16px;
+  align-items: start;
 }
 
 .campo {
@@ -94,7 +95,8 @@ main {
 }
 
 input,
-select {
+select,
+textarea {
   width: 100%;
   padding: 8px 10px;
   font: inherit;
@@ -105,12 +107,18 @@ select {
 }
 
 input:focus,
-select:focus {
+select:focus,
+textarea:focus {
   outline: 2px solid var(--primaria);
   outline-offset: -1px;
 }
 
-input:disabled {
+textarea {
+  resize: vertical;
+}
+
+input:disabled,
+select:disabled {
   background: var(--fundo);
   color: var(--texto-suave);
 }
@@ -222,6 +230,12 @@ td {
 
 th {
   color: var(--texto-suave);
+  font-weight: 600;
+}
+
+.saldo {
+  margin: 0 0 12px;
+  font-size: 1.125rem;
   font-weight: 600;
 }
 

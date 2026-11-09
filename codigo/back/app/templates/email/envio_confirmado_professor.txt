@@ -1,0 +1,11 @@
+Olá, {{ envio.professor.nome }}!
+
+Confirmamos que o seu envio de moedas foi realizado.
+
+Aluno: {{ envio.aluno.nome }}
+Quantidade: {{ envio.valor }} moeda(s)
+Motivo: {{ envio.mensagem }}
+
+Seu saldo atual é de {{ envio.professor.saldo }} moeda(s).
+
+Sistema de Moeda Estudantil
