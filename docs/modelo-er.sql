@@ -11,6 +11,7 @@
 -- guarda as credenciais comuns e cada perfil tem a sua tabela, cuja chave
 -- primária é também chave estrangeira para usuarios.id. O login é o
 -- próprio e-mail do usuário, então o e-mail é único entre todos os perfis.
+-- EnvioMoeda e TrocaVantagem herdam de Transacao da mesma forma.
 -- =====================================================================
 
 PRAGMA foreign_keys = ON;
@@ -55,8 +56,8 @@ CREATE TABLE alunos (
 );
 
 -- ---------------------------------------------------------------------
--- [PLANEJADA] Professores. Relacionamento N:1 com instituicoes_ensino.
--- Recebem 1.000 moedas a cada semestre (acumulativas).
+-- [IMPLEMENTADA] Professores. Relacionamento N:1 com instituicoes_ensino.
+-- Recebem 1.000 moedas ao serem cadastrados.
 -- ---------------------------------------------------------------------
 CREATE TABLE professores (
     id              INTEGER      NOT NULL PRIMARY KEY,
@@ -96,33 +97,38 @@ CREATE TABLE vantagens (
 );
 
 -- ---------------------------------------------------------------------
--- [PLANEJADA] Envio de moedas de um professor para um aluno.
--- Relacionamentos N:1 com professores e com alunos. O motivo
--- (reconhecimento) é obrigatório.
+-- [IMPLEMENTADA] Superclasse das transações de moedas. O extrato é uma
+-- consulta sobre esta tabela. tipo é o discriminador: 'envio' | 'troca'.
+-- O aluno fica aqui porque toda transação envolve um aluno.
 -- ---------------------------------------------------------------------
-CREATE TABLE envios_moeda (
-    id            INTEGER  NOT NULL PRIMARY KEY,
-    data          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    quantidade    INTEGER  NOT NULL CHECK (quantidade > 0),
-    motivo        TEXT     NOT NULL,
-    professor_id  INTEGER  NOT NULL,
-    aluno_id      INTEGER  NOT NULL,
-    FOREIGN KEY (professor_id) REFERENCES professores (id),
-    FOREIGN KEY (aluno_id)     REFERENCES alunos (id)
+CREATE TABLE transacoes (
+    id        INTEGER     NOT NULL PRIMARY KEY,
+    tipo      VARCHAR(20) NOT NULL,
+    valor     INTEGER     NOT NULL,
+    data      DATETIME    NOT NULL,
+    aluno_id  INTEGER     NOT NULL,
+    FOREIGN KEY (aluno_id) REFERENCES alunos (id)
 );
 
 -- ---------------------------------------------------------------------
--- [PLANEJADA] Troca de moedas por uma vantagem.
--- Relacionamentos N:1 com alunos e com vantagens. codigo é o cupom
+-- [IMPLEMENTADA] Envio de moedas de um professor para um aluno.
+-- A mensagem (motivo do reconhecimento) é obrigatória.
+-- ---------------------------------------------------------------------
+CREATE TABLE envios_moeda (
+    id            INTEGER      NOT NULL PRIMARY KEY,
+    mensagem      VARCHAR(500) NOT NULL,
+    professor_id  INTEGER      NOT NULL,
+    FOREIGN KEY (id)           REFERENCES transacoes (id),
+    FOREIGN KEY (professor_id) REFERENCES professores (id)
+);
+
+-- ---------------------------------------------------------------------
+-- [IMPLEMENTADA] Troca de moedas por uma vantagem. codigo é o cupom
 -- enviado por e-mail ao aluno e à empresa para conferência na troca.
+-- A coluna vantagem_id entra junto com a tabela vantagens [PLANEJADA].
 -- ---------------------------------------------------------------------
 CREATE TABLE trocas_vantagem (
-    id           INTEGER     NOT NULL PRIMARY KEY,
-    data         DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    quantidade   INTEGER     NOT NULL CHECK (quantidade > 0),
-    codigo       VARCHAR(20) NOT NULL UNIQUE,
-    aluno_id     INTEGER     NOT NULL,
-    vantagem_id  INTEGER     NOT NULL,
-    FOREIGN KEY (aluno_id)    REFERENCES alunos (id),
-    FOREIGN KEY (vantagem_id) REFERENCES vantagens (id)
+    id      INTEGER     NOT NULL PRIMARY KEY,
+    codigo  VARCHAR(20) NOT NULL UNIQUE,
+    FOREIGN KEY (id) REFERENCES transacoes (id)
 );
