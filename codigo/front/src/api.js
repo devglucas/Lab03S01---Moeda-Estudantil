@@ -10,11 +10,20 @@ export class ErroApi extends Error {
 
 async function requisicao(caminho, opcoes = {}) {
   let resposta;
+
   try {
+    const headers = { ...opcoes.headers };
+
+    // FormData precisa definir seu próprio Content-Type e boundary
+    if (!(opcoes.body instanceof FormData)) {
+      headers["Content-Type"] = "application/json";
+    }
+
     resposta = await fetch(`${API_URL}${caminho}`, {
-      headers: { "Content-Type": "application/json" },
       ...opcoes,
+      headers,
     });
+
   } catch {
     throw new ErroApi("Não foi possível conectar ao servidor.");
   }
@@ -22,11 +31,43 @@ async function requisicao(caminho, opcoes = {}) {
   if (resposta.status === 204) return null;
 
   const corpo = await resposta.json().catch(() => null);
+
   if (!resposta.ok) {
-    throw new ErroApi(corpo?.erro ?? "Erro inesperado no servidor.", corpo?.campos);
+    throw new ErroApi(
+      corpo?.erro ?? "Erro inesperado no servidor.",
+      corpo?.campos
+    );
   }
+
   return corpo;
 }
+
+
+function recursoForm(caminho) {
+  return {
+    listar: () => requisicao(caminho),
+
+    criar: (dados) =>
+      requisicao(caminho, {
+        method: "POST",
+        body: dados instanceof FormData
+          ? dados
+          : JSON.stringify(dados),
+      }),
+
+    atualizar: (id, dados) =>
+      requisicao(`${caminho}/${id}`, {
+        method: "PUT",
+        body: dados instanceof FormData
+          ? dados
+          : JSON.stringify(dados),
+      }),
+
+    remover: (id) =>
+      requisicao(`${caminho}/${id}`, { method: "DELETE" }),
+  };
+}
+
 
 function recurso(caminho) {
   return {
@@ -44,3 +85,4 @@ export const professorApi = recurso("/professores");
 export const alunosApi = recurso("/alunos");
 export const empresasApi = recurso("/empresas");
 export const instituicoesApi = recurso("/instituicoes");
+export const vantagemApi = recursoForm("/vantagens");
