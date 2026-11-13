@@ -1,10 +1,8 @@
-"""Repositório dos alunos."""
+"""Repositório dos professores."""
 from app.models.professor import Professor
 from app.repositories.base_repository import BaseRepository
 
-class ErroIntegridade(Exception):
-    """O banco recusou a gravação (chave única ou estrangeira violada)."""
-    
+
 class ProfessorRepository(BaseRepository):
     model = Professor
 

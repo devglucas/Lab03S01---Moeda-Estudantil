@@ -1,0 +1,11 @@
+Olá, {{ envio.aluno.nome }}!
+
+Você recebeu moedas em reconhecimento ao seu mérito.
+
+Professor: {{ envio.professor.nome }}
+Quantidade: {{ envio.valor }} moeda(s)
+Motivo: {{ envio.mensagem }}
+
+Seu saldo atual é de {{ envio.aluno.saldo }} moeda(s).
+
+Sistema de Moeda Estudantil

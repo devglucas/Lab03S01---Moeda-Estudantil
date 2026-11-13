@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import Alunos from "./pages/Alunos.jsx";
 import Empresas from "./pages/Empresas.jsx";
+import Extrato from "./pages/Extrato.jsx";
 import Professores from "./pages/Professores.jsx";
 import Transacao from "./pages/Transacao.jsx";
 import Login from "./pages/Login.jsx";
@@ -13,7 +14,10 @@ const ABAS_SEM_LOGIN = [
   { id: "cadastro", rotulo: "Cadastro", Pagina: Cadastro },
 ];
 
-const ABAS_ALUNO = [{ id: "regatarVantagem", rotulo: "Restagar Vantagem", Pagina: Transacao }];
+const ABAS_ALUNO = [
+  { id: "regatarVantagem", rotulo: "Restagar Vantagem", Pagina: Transacao },
+  { id: "extrato", rotulo: "Extrato", Pagina: Extrato }
+];
 const ABAS_EMPRESA = [{ id: "cadastroVantagem", rotulo: "Cadastro Vantagem", Pagina: Vantagem }];
 
 const ABAS_PROFESSOR = [
@@ -21,6 +25,7 @@ const ABAS_PROFESSOR = [
   { id: "empresas", rotulo: "Empresas parceiras", Pagina: Empresas },
   { id: "professores", rotulo: "Professores", Pagina: Professores },
   { id: "transacoes", rotulo: "Transacoes", Pagina: Transacao },
+  { id: "extrato", rotulo: "Extrato", Pagina: Extrato },
 ];
 
 // Qualquer tipo logado que não seja aluno usa as abas de professor (como antes).
@@ -63,7 +68,7 @@ export default function App() {
   //   setAbaId(null);
   // }
 
-  useEffect(()=>{
+  useEffect(() => {
     usuario = lerUsuario()
     console.log(usuario)
     tipo = usuario?.tipo ?? null
@@ -108,9 +113,9 @@ export default function App() {
 
       <main>
         <Pagina
-          // onLogin={entrar}
-          // onCadastrado={() => setAbaId("entrar")}
-          // onVoltar={() => setAbaId("entrar")}
+        // onLogin={entrar}
+        // onCadastrado={() => setAbaId("entrar")}
+        // onVoltar={() => setAbaId("entrar")}
         />
       </main>
     </>

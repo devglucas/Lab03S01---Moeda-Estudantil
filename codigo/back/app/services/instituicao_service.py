@@ -1,13 +1,19 @@
 """Regras de negócio das instituições de ensino."""
 from app.models.instituicao import InstituicaoEnsino
-from app.repositories import AlunoRepository, ErroIntegridade, InstituicaoRepository
+from app.repositories import (
+    AlunoRepository,
+    ErroIntegridade,
+    InstituicaoRepository,
+    ProfessorRepository,
+)
 from app.services.erros import Conflito, DadosInvalidos, NaoEncontrado, exigir_json
 
 
 class InstituicaoService:
-    def __init__(self, instituicoes=None, alunos=None):
+    def __init__(self, instituicoes=None, alunos=None, professores=None):
         self.instituicoes = instituicoes or InstituicaoRepository()
         self.alunos = alunos or AlunoRepository()
+        self.professores = professores or ProfessorRepository()
 
     def listar(self):
         return self.instituicoes.listar()
@@ -45,10 +51,14 @@ class InstituicaoService:
     def remover(self, instituicao_id):
         instituicao = self.buscar(instituicao_id)
 
-        # Impede excluir instituições vinculadas a alunos.
+        # Impede excluir instituições vinculadas a alunos ou professores.
         if self.alunos.existe_na_instituicao(instituicao_id):
             raise Conflito(
                 "Não é possível remover uma instituição que possui alunos vinculados."
+            )
+        if self.professores.existe_na_instituicao(instituicao_id):
+            raise Conflito(
+                "Não é possível remover uma instituição que possui professores vinculados."
             )
 
         try:

@@ -1,21 +1,18 @@
-"""Controller dos professores: cadastro, consulta, crédito e envio de moedas.
+"""Controller dos professores: CRUD em /api/professores.
 
-Só traduz HTTP <-> Python; as regras ficam em ``ProfessorService`` e ``TransacaoService``.
+Só traduz HTTP <-> Python; as regras ficam em ``ProfessorService``.
 """
 from flask import Blueprint, jsonify, request
 
 from app.services.professor_service import ProfessorService
-from app.services.transacao_service import TransacaoService
 
 professor_bp = Blueprint("professores", __name__, url_prefix="/api/professores")
 servico = ProfessorService()
-servico_transacao = TransacaoService()
 
 
 @professor_bp.post("")
 def criar():
     professor = servico.criar(request.get_json(silent=True))
-    servico_transacao.recebe1000(professor.id)  # só para teste: nasce com 1000 moedas
     return jsonify(professor.to_dict()), 201
 
 
@@ -29,15 +26,13 @@ def buscar(professor_id):
     return jsonify(servico.buscar(professor_id).to_dict())
 
 
-# @professor_bp.post("/<int:professor_id>/recebe-1000")
-# def recebe1000(professor_id):
-#     professor = servico_transacao.recebe1000(professor_id)
-#     return jsonify(professor.to_dict())
+@professor_bp.put("/<int:professor_id>")
+def atualizar(professor_id):
+    professor = servico.atualizar(professor_id, request.get_json(silent=True))
+    return jsonify(professor.to_dict())
 
 
-@professor_bp.post("/<int:professor_id>/enviar-moedas")
-def enviar_moedas(professor_id):
-    transacao = servico_transacao.enviar_moedas(
-        professor_id, request.get_json(silent=True)
-    )
-    return jsonify(transacao.to_dict()), 201
+@professor_bp.delete("/<int:professor_id>")
+def remover(professor_id):
+    servico.remover(professor_id)
+    return "", 204

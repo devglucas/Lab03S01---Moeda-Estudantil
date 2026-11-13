@@ -47,17 +47,20 @@ As instituições de ensino são pré-cadastradas. O desenvolvimento acontece em
 
 - 🎓 **CRUD de Aluno:** cadastro, listagem, edição e exclusão de alunos, com validação de CPF, e-mail e instituição de ensino.
 - 🏢 **CRUD de Empresa Parceira:** cadastro, listagem, edição e exclusão de empresas, com validação de CNPJ e e-mail.
+- 👨‍🏫 **CRUD de Professor:** cadastro, listagem, edição e exclusão de professores. Ao ser cadastrado, o professor recebe 1.000 moedas.
 - 🏫 **Instituições de Ensino:** instituições pré-cadastradas automaticamente na primeira execução.
+- 🪙 **Envio de moedas:** o professor envia moedas a um aluno da mesma instituição, com motivo obrigatório. O débito, o crédito e o registro da transação são gravados de forma atômica.
+- 📄 **Extrato:** consulta do saldo e das transações de um professor (envios realizados) ou de um aluno (moedas recebidas e trocas).
+- 📨 **Notificações por e-mail:** a cada envio, o professor recebe uma confirmação e o aluno recebe um aviso, cada um com o seu template.
 - 🔐 **Senhas protegidas:** as senhas são armazenadas apenas como hash.
 
 **Planejadas (próximas sprints)**
 
 - 🔑 Autenticação de alunos, professores e empresas.
-- 🪙 Envio de moedas do professor para o aluno, com motivo obrigatório.
 - 🎁 Cadastro de vantagens pelas empresas parceiras.
 - 🔄 Troca de moedas por vantagens, com geração de cupom.
-- 📄 Extrato de transações para alunos e professores.
-- 📨 Notificações por e-mail (recebimento de moedas e cupom de troca).
+- 🗓️ Crédito de 1.000 moedas a cada semestre para os professores.
+- 📨 Envio do cupom de troca por e-mail.
 
 ---
 
@@ -86,7 +89,7 @@ As instituições de ensino são pré-cadastradas. O desenvolvimento acontece em
 O sistema segue a arquitetura **MVC**, com o back-end e o front-end separados e comunicando-se por uma **API REST** em JSON.
 
 - **View** (`codigo/front`): aplicação React que consome a API e exibe as telas de cadastro e listagem.
-- **Controller** (`codigo/back/app/controllers`): um *blueprint* do Flask por recurso (alunos, empresas, instituições). Só recebe a requisição HTTP, chama o service e devolve JSON.
+- **Controller** (`codigo/back/app/controllers`): um *blueprint* do Flask por recurso (alunos, professores, empresas, instituições, transações). Só recebe a requisição HTTP, chama o service e devolve JSON.
 - **Model** (`codigo/back/app/models`): classes que representam as entidades do domínio e são mapeadas para tabelas do banco pelo ORM.
 
 No back-end, entre o controller e o model, há mais duas camadas:
@@ -108,6 +111,7 @@ Tela React  ->  fetch (src/api.js)  ->  Controller  ->  Service  ->  Repository 
 | :--- | :--- |
 | Casos de uso | [`docs/caso_de_uso.png`](docs/caso_de_uso.png) |
 | Classes | [`docs/diagrama_de_classe.png`](docs/diagrama_de_classe.png) |
+| Componentes | [`docs/diagrama_de_componentes.png`](docs/diagrama_de_componentes.png) |
 | Modelo Entidade-Relacionamento | [`docs/modelo-er.png`](docs/modelo-er.png) (script SQL comentado em [`docs/modelo-er.sql`](docs/modelo-er.sql)) |
 
 As histórias de usuário estão em [`docs/historias-de-usuario.md`](docs/historias-de-usuario.md).
@@ -129,16 +133,24 @@ O grupo escolheu usar um **ORM (Object-Relational Mapping)**, o **SQLAlchemy**, 
 
 - `app/extensions.py`: instância única do `SQLAlchemy`, compartilhada por toda a aplicação.
 - `app/models/`: as entidades persistentes. Cada model herda de `db.Model` e declara suas colunas, chaves e relacionamentos.
-- `app/repositories/`: um repositório por entidade (`AlunoRepository`, `EmpresaRepository`, `InstituicaoRepository`, `UsuarioRepository`), todos herdando de `BaseRepository`, que implementa buscar por id, salvar e remover. Os repositórios também fazem as consultas de unicidade (`login_em_uso`, `cpf_em_uso`, `cnpj_em_uso`).
+- `app/repositories/`: um repositório por entidade (`AlunoRepository`, `EmpresaRepository`, `InstituicaoRepository`, `ProfessorRepository`, `TransacaoRepository`, `UsuarioRepository`), todos herdando de `BaseRepository`, que implementa buscar por id, salvar e remover. Os repositórios também fazem as consultas de unicidade (`login_em_uso`, `cpf_em_uso`, `cnpj_em_uso`).
 - `app/__init__.py`: configura a conexão (`SQLALCHEMY_DATABASE_URI`), cria as tabelas e cadastra as instituições iniciais (`app/seed.py`).
 
 **Mapeamento da herança**
 
 `Aluno`, `Professor` e `EmpresaParceira` herdam de `Usuario`. Foi usada a estratégia **joined table** (uma tabela por subtipo): a tabela `usuarios` guarda o login (que é o próprio e-mail do usuário), o hash da senha e o tipo do usuário, e cada perfil tem a sua própria tabela, cuja chave primária também é chave estrangeira para `usuarios.id`. Assim o e-mail é único entre todos os perfis, e cada tabela guarda apenas os campos do seu perfil.
 
+`EnvioMoeda` e `TrocaVantagem` herdam de `Transacao` da mesma forma. A tabela `transacoes` guarda o tipo, o valor, a data e o aluno, que participa de toda transação. Assim o extrato do aluno é uma única consulta que traz os dois tipos, e o extrato não precisa de uma entidade própria.
+
+**Atomicidade do envio de moedas**
+
+O débito do professor, o crédito do aluno e o registro do `EnvioMoeda` são gravados no mesmo `commit`. Se a gravação falhar, é feito `rollback` e nenhuma das alterações é persistida. Os e-mails só são enviados depois do `commit`, em segundo plano, para a tela não ficar esperando o servidor de e-mail. Uma falha no envio não desfaz a transação e fica registrada apenas no log do back-end.
+
 **Banco de dados**
 
 O banco é o **SQLite**, gravado no arquivo `codigo/back/moedas.db`. Ele não precisa de instalação nem de servidor, o que simplifica a configuração do ambiente de cada integrante. O arquivo não é versionado e é criado automaticamente na primeira execução. Como o acesso passa pelo ORM, trocar para outro banco (por exemplo, PostgreSQL) exige apenas mudar a variável `DATABASE_URL`.
+
+O projeto não usa migrações: `db.create_all()` só cria as tabelas que ainda não existem. Depois de uma mudança em uma tabela já existente, apague o `moedas.db` local para que ele seja recriado.
 
 O modelo completo, incluindo as tabelas planejadas para as próximas sprints, está em [`docs/modelo-er.png`](docs/modelo-er.png).
 
@@ -154,7 +166,7 @@ URL base: `http://localhost:5000/api`
 | `GET` | `/alunos/{id}` | Busca um aluno |
 | `POST` | `/alunos` | Cadastra um aluno |
 | `PUT` | `/alunos/{id}` | Atualiza um aluno (senha opcional) |
-| `DELETE` | `/alunos/{id}` | Remove um aluno |
+| `DELETE` | `/alunos/{id}` | Remove um aluno sem transações |
 | `GET` | `/empresas` | Lista as empresas parceiras |
 | `GET` | `/empresas/{id}` | Busca uma empresa parceira |
 | `POST` | `/empresas` | Cadastra uma empresa parceira |
@@ -164,7 +176,16 @@ URL base: `http://localhost:5000/api`
 | `GET` | `/instituicoes/{id}` | Busca uma instituição |
 | `POST` | `/instituicoes` | Cadastra uma instituição |
 | `PUT` | `/instituicoes/{id}` | Atualiza uma instituição |
-| `DELETE` | `/instituicoes/{id}` | Remove uma instituição sem alunos vinculados |
+| `DELETE` | `/instituicoes/{id}` | Remove uma instituição sem alunos ou professores vinculados |
+| `GET` | `/professores` | Lista os professores |
+| `GET` | `/professores/{id}` | Busca um professor |
+| `POST` | `/professores` | Cadastra um professor, que recebe 1.000 moedas |
+| `PUT` | `/professores/{id}` | Atualiza um professor (senha opcional) |
+| `DELETE` | `/professores/{id}` | Remove um professor que ainda não enviou moedas |
+| `GET` | `/transacoes` | Lista todas as transações |
+| `POST` | `/transacoes` | Envia moedas de um professor para um aluno |
+| `GET` | `/transacoes/extrato/professor/{id}` | Saldo e envios realizados pelo professor |
+| `GET` | `/transacoes/extrato/aluno/{id}` | Saldo, moedas recebidas e trocas do aluno |
 
 Em caso de erro, a API responde com `{"erro": "mensagem"}` e, quando há campos inválidos, `{"erro": "...", "campos": {"campo": "mensagem"}}`. Exemplos de corpo das requisições estão em [`JSONTESTES.txt`](JSONTESTES.txt).
 
@@ -180,14 +201,20 @@ Em caso de erro, a API responde com `{"erro": "mensagem"}` e, quando há campos 
 
 ### 🔑 Variáveis de Ambiente
 
-Nenhuma variável é obrigatória para rodar localmente. Os valores padrão já funcionam.
+Nenhuma variável é obrigatória para rodar localmente. Os valores padrão já funcionam, mas os e-mails só são enviados com `MAIL_HOST` configurado.
 
-**Back-end** (opcional, em `codigo/back/.env`):
+**Back-end** (opcional, em `codigo/back/.env`, veja `codigo/back/.env.example`). O `.env` não é versionado, então as credenciais ficam fora do repositório:
 
 | Variável | Descrição | Padrão |
 | :--- | :--- | :--- |
 | `DATABASE_URL` | URL de conexão do banco | SQLite em `codigo/back/moedas.db` |
 | `FRONTEND_ORIGIN` | Origem liberada no CORS | `http://localhost:5173` |
+| `MAIL_HOST` | Servidor SMTP (por exemplo, o do Mailtrap) | Vazio (e-mails não são enviados) |
+| `MAIL_PORT` | Porta do servidor SMTP | `587` |
+| `MAIL_USER` | Usuário do SMTP | Vazio |
+| `MAIL_PASSWORD` | Senha do SMTP | Vazio |
+| `MAIL_FROM` | Remetente dos e-mails | `nao-responda@moeda.local` |
+| `MAIL_USE_TLS` | Usa STARTTLS (`true` ou `false`) | `true` |
 
 **Front-end** (opcional, em `codigo/front/.env.local`, veja `codigo/front/.env.example`):
 
@@ -236,6 +263,8 @@ npm run dev
 
 Acesse `http://localhost:5173` no navegador.
 
+> **macOS:** o Receptor AirPlay também usa a porta 5000, e o navegador pode acabar falando com ele em vez do Flask, mostrando "Não foi possível conectar ao servidor". Desative o Receptor AirPlay nos Ajustes do Sistema ou crie `codigo/front/.env.local` com `VITE_API_URL=http://127.0.0.1:5000/api`.
+
 ---
 
 ## 📂 Estrutura de Pastas
@@ -248,6 +277,7 @@ Acesse `http://localhost:5173` no navegador.
 ├── docs/                          # 📚 Diagramas e documentação.
 │   ├── caso_de_uso.puml / .png
 │   ├── diagrama_de_classe.puml / .png
+│   ├── diagrama_de_componentes.puml / .png
 │   ├── modelo-er.puml / .png / .sql
 │   └── historias-de-usuario.md
 │
@@ -263,7 +293,8 @@ Acesse `http://localhost:5173` no navegador.
     │   │   ├── controllers/       # 🎮 Endpoints REST (blueprints).
     │   │   ├── services/          # 🧠 Regras de negócio e erros de negócio.
     │   │   ├── repositories/      # 🗃️ Acesso ao banco de dados.
-    │   │   └── models/            # 🧬 Entidades persistentes (ORM).
+    │   │   ├── models/            # 🧬 Entidades persistentes (ORM).
+    │   │   └── templates/email/   # 📨 Templates dos e-mails.
     │   └── tests/                 # 🧪 Testes automatizados (pytest).
     │
     └── front/                     # 💻 Aplicação React
@@ -277,7 +308,7 @@ Acesse `http://localhost:5173` no navegador.
             ├── formatacao.js      # 🛠️ Formatação de CPF e CNPJ.
             ├── styles.css         # 🎨 Estilos globais.
             ├── components/        # 🧱 Componentes reutilizáveis.
-            └── pages/             # 📄 Telas de alunos e empresas.
+            └── pages/             # 📄 Telas de cadastro, transações e extrato.
 ```
 
 ---
@@ -292,7 +323,7 @@ source venv/bin/activate
 python -m pytest
 ```
 
-Eles cobrem o CRUD completo de aluno, empresa parceira e instituição de ensino, a validação de campos obrigatórios, CPF e CNPJ, e as regras de unicidade (e-mail único entre todos os perfis, CPF, CNPJ e nome da instituição). Os testes de `tests/test_services.py` exercitam a camada de serviço sem banco, usando repositórios falsos.
+Eles cobrem o CRUD completo de aluno, professor, empresa parceira e instituição de ensino, a validação de campos obrigatórios, CPF e CNPJ, e as regras de unicidade (e-mail único entre todos os perfis, CPF, CNPJ e nome da instituição). Também cobrem o envio de moedas (saldo insuficiente, atomicidade e validações), o extrato de professor e aluno e os e-mails (template de cada destinatário e falhas no envio), sem enviar mensagens de verdade. Os testes de `tests/test_services.py` exercitam a camada de serviço sem banco, usando repositórios falsos.
 
 ---
 

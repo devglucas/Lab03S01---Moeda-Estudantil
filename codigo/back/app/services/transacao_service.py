@@ -1,98 +1,108 @@
-from app.extensions import db
-from app.models.aluno import Aluno
-from app.models.professor import Professor
-from app.models.transacao import Transacao
-from app.repositories.transacao_repository import TransacaoRepository
-from app.services.email_service import EmailService
-# from app.services.professor_service import NaoEncontradoError, ValidacaoError
+"""Regras de negócio das transações: envio de moedas e extrato."""
+from app.models.transacao import EnvioMoeda
+from app.repositories import (
+    AlunoRepository,
+    ErroIntegridade,
+    ProfessorRepository,
+    TransacaoRepository,
+)
 from app.services.erros import Conflito, DadosInvalidos, NaoEncontrado, exigir_json
+from app.services.notificacao_service import NotificacaoService
+
+TAMANHO_MAXIMO_MENSAGEM = 500
+
 
 class TransacaoService:
-    def __init__(self, repository=None, email_service=None):
-        self.repository = repository or TransacaoRepository()
-        self.email_service = email_service or EmailService()
+    def __init__(self, transacoes=None, professores=None, alunos=None, notificacoes=None):
+        self.transacoes = transacoes or TransacaoRepository()
+        self.professores = professores or ProfessorRepository()
+        self.alunos = alunos or AlunoRepository()
+        self.notificacoes = notificacoes or NotificacaoService()
 
-    # ---------- R08: enviar moedas ----------
+    def listar_todas(self):
+        return self.transacoes.listar_todas()
+
     def enviar_moedas(self, dados):
-        professor_id = dados.get("professorId")
-        aluno_id = dados.get("alunoId")
-        valor = dados.get("valor")
-        mensagem = (dados.get("mensagem") or "").strip()
+        dados = exigir_json(dados)
+        mensagem = self._validar_envio(dados)
 
-        if not professor_id or not aluno_id:
-            raise DadosInvalidos("Professor e aluno são obrigatórios")
-        if isinstance(valor, bool) or not isinstance(valor, int) or valor <= 0:
-            raise DadosInvalidos("Valor deve ser um número inteiro maior que zero")
-        if not mensagem:
-            raise DadosInvalidos("A mensagem de reconhecimento é obrigatória")
-        if len(mensagem) > 500:
-            raise DadosInvalidos("A mensagem deve ter no máximo 500 caracteres")
+        professor = self._buscar_professor(dados["professorId"])
+        aluno = self._buscar_aluno(dados["alunoId"])
+        valor = dados["valor"]
 
-        professor = db.session.get(Professor, professor_id)
-        if not professor:
-            raise NaoEncontrado("Professor não encontrado")
-        aluno = db.session.get(Aluno, aluno_id)
-        if not aluno:
-            raise NaoEncontrado("Aluno não encontrado")
         if professor.instituicao_id != aluno.instituicao_id:
-            raise NaoEncontrado("Professor e aluno são de instituições diferentes")
+            raise DadosInvalidos(
+                "Dados inválidos",
+                {"alunoId": "O aluno é de outra instituição de ensino"},
+            )
+        if valor > professor.saldo:
+            raise DadosInvalidos(
+                f"Saldo insuficiente: o professor tem {professor.saldo} moeda(s).",
+                {"valor": "Valor maior que o saldo do professor"},
+            )
 
-        # R09: verifica saldo (debitar lança ValueError se insuficiente)
+        professor.debitar(valor)
+        aluno.receber_moedas(valor)
+        envio = EnvioMoeda(professor=professor, aluno=aluno, valor=valor, mensagem=mensagem)
+
+        # O débito, o crédito e o registro vão no mesmo commit: ou tudo é
+        # gravado, ou nada é.
         try:
-            professor.debitar(valor)
-        except ValueError as e:
-            raise DadosInvalidos(str(e))
-        aluno.saldo += valor
+            self.transacoes.registrar(envio, professor, aluno)
+        except ErroIntegridade:
+            raise Conflito("Não foi possível registrar o envio de moedas.")
 
-        transacao = Transacao(
-            professor_id=professor.id, aluno_id=aluno.id, valor=valor, mensagem=mensagem
-        )
-        self.repository.registrar(transacao, professor, aluno)
+        self.notificacoes.notificar_envio_moedas(envio)
+        return envio
 
-        self._notificar_aluno(aluno, professor, transacao)
-        return transacao
-
-    def _notificar_aluno(self, aluno, professor, transacao):
-        corpo = (
-            f"Olá, {aluno.nome}!\n\n"
-            f"O professor {professor.nome} enviou {transacao.valor} moeda(s) para você.\n"
-            f"Motivo: {transacao.mensagem}\n\n"
-            f"Seu saldo atual é de {aluno.saldo} moeda(s)."
-        )
-        self.email_service.enviar(aluno.email, "Você recebeu moedas!", corpo)
-
-    # ---------- R11: extrato ----------
     def extrato_professor(self, professor_id):
-        professor = db.session.get(Professor, professor_id)
-        if not professor:
-            raise NaoEncontrado("Professor não encontrado")
+        professor = self._buscar_professor(professor_id)
         return {
             "saldo": professor.saldo,
-            "transacoes": self.repository.listar_por_professor(professor_id),
+            "transacoes": self.transacoes.listar_por_professor(professor_id),
         }
 
     def extrato_aluno(self, aluno_id):
-        aluno = db.session.get(Aluno, aluno_id)
-        if not aluno:
-            raise NaoEncontrado("Aluno não encontrado")
+        aluno = self._buscar_aluno(aluno_id)
         return {
             "saldo": aluno.saldo,
-            "transacoes": self.repository.listar_por_aluno(aluno_id),
+            "transacoes": self.transacoes.listar_por_aluno(aluno_id),
         }
 
-    def recebe1000(self, professor_id):
-        professor = db.session.get(Professor, professor_id)
-        if not professor:
-            raise NaoEncontrado("Professor não encontrado")
+    def _validar_envio(self, dados):
+        """Valida o corpo da requisição e devolve o motivo já sem espaços."""
+        campos = {}
 
-        professor.receber_moedas_semestre()  # saldo += 1000
-        self.repository.salvar(professor)    # grava no banco (commit)
+        if not _inteiro_positivo(dados.get("professorId")):
+            campos["professorId"] = "Selecione o professor"
+        if not _inteiro_positivo(dados.get("alunoId")):
+            campos["alunoId"] = "Selecione o aluno"
+        if not _inteiro_positivo(dados.get("valor")):
+            campos["valor"] = "Informe um número inteiro maior que zero"
+
+        mensagem = dados.get("mensagem")
+        mensagem = mensagem.strip() if isinstance(mensagem, str) else ""
+        if not mensagem:
+            campos["mensagem"] = "O motivo do reconhecimento é obrigatório"
+        elif len(mensagem) > TAMANHO_MAXIMO_MENSAGEM:
+            campos["mensagem"] = f"O motivo deve ter até {TAMANHO_MAXIMO_MENSAGEM} caracteres"
+
+        if campos:
+            raise DadosInvalidos("Dados inválidos", campos)
+        return mensagem
+
+    def _buscar_professor(self, professor_id):
+        professor = self.professores.buscar_por_id(professor_id)
+        if professor is None:
+            raise NaoEncontrado("Professor não encontrado")
         return professor
 
-    def salvar(self, entidade):
-        db.session.add(entidade)
-        db.session.commit()
-        return entidade
-    
-    def listar_todas(self):
-        return self.repository.listar_todas()
+    def _buscar_aluno(self, aluno_id):
+        aluno = self.alunos.buscar_por_id(aluno_id)
+        if aluno is None:
+            raise NaoEncontrado("Aluno não encontrado")
+        return aluno
+
+
+def _inteiro_positivo(valor):
+    return isinstance(valor, int) and not isinstance(valor, bool) and valor > 0

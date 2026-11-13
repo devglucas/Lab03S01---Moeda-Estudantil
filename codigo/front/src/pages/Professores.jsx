@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { professorApi, instituicoesApi } from "../api.js";
 import Aviso from "../components/Aviso.jsx";
 import Campo from "../components/Campo.jsx";
-import { apenasDigitos, limparRg, mascaraCpf, mascaraRg } from "../formatacao.js";
+import { apenasDigitos, mascaraCpf } from "../formatacao.js";
 
 const VAZIO = {
   nome: "",
@@ -59,6 +59,7 @@ export default function Professores() {
       nome: professor.nome,
       email: professor.email,
       cpf: mascaraCpf(professor.cpf),
+      departamento: professor.departamento,
       instituicaoId: String(professor.instituicaoId),
       senha: "",
     });
@@ -72,11 +73,10 @@ export default function Professores() {
     setSalvando(true);
     setAviso(null);
 
-    // A pontuação de CPF e RG é só visual: a API recebe apenas os caracteres.
+    // A pontuação do CPF é só visual: a API recebe apenas os dígitos.
     const dados = {
       ...form,
       cpf: apenasDigitos(form.cpf),
-      // rg: limparRg(form.rg),
       instituicaoId: Number(form.instituicaoId) || null,
     };
 
@@ -99,12 +99,12 @@ export default function Professores() {
   }
 
   async function remover(professor) {
-    if (!window.confirm(`Remover o aluno ${professor.nome}?`)) return;
+    if (!window.confirm(`Remover o professor ${professor.nome}?`)) return;
 
     try {
       await professorApi.remover(professor.id);
       if (editandoId === professor.id) limpar();
-      setAviso({ tipo: "sucesso", texto: "Aluno removido." });
+      setAviso({ tipo: "sucesso", texto: "Professor removido." });
       await carregar();
     } catch (erro) {
       setAviso({ tipo: "erro", texto: erro.message });
@@ -121,9 +121,7 @@ export default function Professores() {
           <Campo rotulo="Nome" nome="nome" value={form.nome} onChange={alterar} erro={erros.nome} />
           <Campo rotulo="E-mail" nome="email" type="email" value={form.email} onChange={alterar} erro={erros.email} />
           <Campo rotulo="CPF" nome="cpf" placeholder="000.000.000-00" inputMode="numeric" maxLength={14} value={form.cpf} onChange={alterar} erro={erros.cpf} />
-          <Campo rotulo="Departamento" nome="departamento" placeholder="Matematica" maxLength={25} value={form.departamento} onChange={alterar} erro={erros.rg} />
-          {/* <Campo rotulo="Endereço" nome="endereco" value={form.endereco} onChange={alterar} erro={erros.endereco} /> */}
-          {/* <Campo rotulo="Curso" nome="curso" value={form.curso} onChange={alterar} erro={erros.curso} /> */}
+          <Campo rotulo="Departamento" nome="departamento" placeholder="Matemática" maxLength={120} value={form.departamento} onChange={alterar} erro={erros.departamento} />
           <Campo rotulo="Instituição de ensino" erro={erros.instituicaoId}>
             <select name="instituicaoId" value={form.instituicaoId} onChange={alterar}>
               <option value="">Selecione</option>
@@ -168,6 +166,7 @@ export default function Professores() {
                   <th>Nome</th>
                   <th>E-mail</th>
                   <th>CPF</th>
+                  <th>Departamento</th>
                   <th>Instituição</th>
                   <th className="numero">Saldo</th>
                   <th />
@@ -179,6 +178,7 @@ export default function Professores() {
                     <td>{professor.nome}</td>
                     <td>{professor.email}</td>
                     <td>{mascaraCpf(professor.cpf)}</td>
+                    <td>{professor.departamento}</td>
                     <td>{professor.instituicaoNome}</td>
                     <td className="numero">{professor.saldo}</td>
                     <td className="linha-acoes">

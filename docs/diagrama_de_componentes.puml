@@ -13,6 +13,9 @@ node "Navegador" {
     [App] as app
     [Página Alunos] as pagAlunos
     [Página Empresas] as pagEmpresas
+    [Página Professores] as pagProfessores
+    [Página Transações] as pagTransacoes
+    [Página Extrato] as pagExtrato
     [Componentes de UI\n(Campo, Aviso)] as ui
     [Formatação\n(máscaras CPF/RG/CNPJ)] as formatacao
     [Cliente da API\n(api.js)] as clienteApi
@@ -27,12 +30,18 @@ node "Servidor (Flask)" {
       [AlunoController] as ctrlAluno
       [EmpresaController] as ctrlEmpresa
       [InstituicaoController] as ctrlInst
+      [ProfessorController] as ctrlProfessor
+      [TransacaoController] as ctrlTransacao
     }
 
     package "Services" {
       [AlunoService] as svcAluno
       [EmpresaService] as svcEmpresa
       [InstituicaoService] as svcInst
+      [ProfessorService] as svcProfessor
+      [TransacaoService] as svcTransacao
+      [NotificacaoService] as svcNotificacao
+      [EmailService] as svcEmail
       [Erros de negócio] as erros
       [Validação] as validacao
     }
@@ -42,6 +51,8 @@ node "Servidor (Flask)" {
       [EmpresaRepository] as repEmpresa
       [InstituicaoRepository] as repInst
       [UsuarioRepository] as repUsuario
+      [ProfessorRepository] as repProfessor
+      [TransacaoRepository] as repTransacao
     }
 
     package "Models (SQLAlchemy)" {
@@ -49,25 +60,42 @@ node "Servidor (Flask)" {
       [Aluno] as mAluno
       [EmpresaParceira] as mEmpresa
       [InstituicaoEnsino] as mInst
+      [Professor] as mProfessor
+      [Transacao] as mTransacao
+      [EnvioMoeda] as mEnvio
+      [TrocaVantagem] as mTroca
     }
+
+    [Templates de e-mail\n(professor e aluno)] as templates
 
     [Seed\n(instituições iniciais)] as seed
   }
 }
 
 database "SQLite\n(moedas.db)" as sqlite
+cloud "Servidor SMTP\n(Mailtrap)" as smtp
 
-interface "API REST (JSON)\n/api/alunos\n/apies" as rest
+interface "API REST (JSON)\n/api/alunos\n/api/empresas\n/api/instituicoes\n/api/professores\n/api/transacoes" as rest
 
 usuario --> app
 app --> pagAlunos
 app --> pagEmpresas
+app --> pagProfessores
+app --> pagTransacoes
+app --> pagExtrato
 pagAlunos --> ui
 pagEmpresas --> ui
+pagProfessores --> ui
+pagTransacoes --> ui
+pagExtrato --> ui
 pagAlunos --> formatacao
 pagEmpresas --> formatacao
+pagProfessores --> formatacao
 pagAlunos --> clienteApi
 pagEmpresas --> clienteApi
+pagProfessores --> clienteApi
+pagTransacoes --> clienteApi
+pagExtrato --> clienteApi
 
 clienteApi ..> rest : HTTP / fetch
 rest -- flask
@@ -75,39 +103,72 @@ rest -- flask
 flask --> ctrlAluno
 flask --> ctrlEmpresa
 flask --> ctrlInst
+flask --> ctrlProfessor
+flask --> ctrlTransacao
 flask ..> erros : converte em JSON
 flask --> seed
 
 ctrlAluno --> svcAluno
 ctrlEmpresa --> svcEmpresa
 ctrlInst --> svcInst
+ctrlProfessor --> svcProfessor
+ctrlTransacao --> svcTransacao
 
 svcAluno --> validacao
 svcEmpresa --> validacao
+svcProfessor --> validacao
 svcAluno ..> erros
 svcEmpresa ..> erros
 svcInst ..> erros
+svcProfessor ..> erros
+svcTransacao ..> erros
 
 svcAluno --> repAluno
 svcAluno --> repUsuario
 svcAluno --> repInst
+svcAluno --> repTransacao
 svcEmpresa --> repEmpresa
 svcEmpresa --> repUsuario
 svcInst --> repInst
 svcInst --> repAluno
+svcInst --> repProfessor
+svcProfessor --> repProfessor
+svcProfessor --> repUsuario
+svcProfessor --> repInst
+svcProfessor --> repTransacao
+svcTransacao --> repTransacao
+svcTransacao --> repProfessor
+svcTransacao --> repAluno
+svcTransacao --> svcNotificacao
+svcNotificacao --> templates
+svcNotificacao --> svcEmail
+svcEmail ..> smtp : SMTP
 seed --> repInst
 
 repAluno --> mAluno
 repEmpresa --> mEmpresa
 repInst --> mInst
 repUsuario --> mUsuario
+repProfessor --> mProfessor
+repTransacao --> mTransacao
+repTransacao --> mEnvio
 
 mAluno --|> mUsuario
 mEmpresa --|> mUsuario
+mProfessor --|> mUsuario
 mAluno --> mInst
+mProfessor --> mInst
+mEnvio --|> mTransacao
+mTroca --|> mTransacao
+mTransacao --> mAluno
+mEnvio --> mProfessor
 
 mUsuario ..> sqlite : ORM
 mAluno ..> sqlite : ORM
 mEmpresa ..> sqlite : ORM
 mInst ..> sqlite : ORM
+mProfessor ..> sqlite : ORM
+mTransacao ..> sqlite : ORM
+mEnvio ..> sqlite : ORM
+mTroca ..> sqlite : ORM
 @enduml
