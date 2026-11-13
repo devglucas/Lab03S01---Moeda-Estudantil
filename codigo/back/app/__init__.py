@@ -10,7 +10,7 @@ Camadas: controllers (HTTP) -> services (regras) -> repositories (banco) -> mode
 import os
 
 from dotenv import load_dotenv
-from flask import Flask, jsonify
+from flask import Flask, jsonify, send_from_directory
 from flask_cors import CORS
 
 from app.extensions import db
@@ -48,13 +48,28 @@ def create_app():
     from app.controllers.instituicao_controller import instituicao_bp
     from app.controllers.professor_controller import professor_bp
     from app.controllers.transacao_controller import transacao_bp
+    from app.controllers.vantagem_controller import vantagem_bp
 
     app.register_blueprint(aluno_bp)
     app.register_blueprint(empresa_bp)
     app.register_blueprint(instituicao_bp)
     app.register_blueprint(professor_bp)
     app.register_blueprint(transacao_bp)
+    app.register_blueprint(vantagem_bp)
 
+
+    @app.route("/uploads/<nome>")
+    def obter_foto(nome):
+        pasta = os.path.abspath(
+            os.path.join(
+                os.path.dirname(__file__),
+                "..",
+                "uploads"
+            )
+        )
+
+        return send_from_directory(pasta, nome)
+    
     # Os services lançam ErroDeNegocio; aqui ele vira {"erro", "campos"} + status.
     @app.errorhandler(ErroDeNegocio)
     def erro_de_negocio(erro):
