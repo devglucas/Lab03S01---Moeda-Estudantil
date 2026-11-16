@@ -1,0 +1,83 @@
+@startuml consultar-extrato
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+hide footbox
+
+title Diagrama de Sequência - Consultar extrato
+
+actor "Aluno ou Professor" as usuario
+participant "Extrato.jsx" as tela
+participant "api.js\n(extratoApi)" as api
+participant "autenticacao.py\n(exige_perfil)" as auth
+participant "TransacaoController" as controller
+participant "TransacaoService" as service
+participant "TransacaoRepository" as transacoes
+database "SQLite" as banco
+
+note over usuario, tela
+  O usuário já fez login: o token da
+  sessão vai no header Authorization.
+end note
+
+usuario -> tela : abre a aba "Extrato"
+activate tela
+tela -> api : extratoApi.meu()
+activate api
+api -> auth : GET /api/transacoes/extrato\n(Authorization: Bearer token)
+activate auth
+auth -> banco : SELECT do usuário do token
+activate banco
+banco --> auth : usuário ou vazio
+deactivate banco
+
+alt token válido e perfil = aluno ou professor
+  auth -> controller : extrato()
+  activate controller
+  controller -> service : extrato(usuário logado)
+  activate service
+
+  alt usuário é professor
+    service -> transacoes : listar_por_professor(id)
+    activate transacoes
+    transacoes -> banco : SELECT em transacoes e envios_moeda\n(mais recentes primeiro)
+    activate banco
+    banco --> transacoes : registros
+    deactivate banco
+    transacoes --> service : envios realizados
+    deactivate transacoes
+  else usuário é aluno
+    service -> transacoes : listar_por_aluno(id)
+    activate transacoes
+    transacoes -> banco : SELECT em transacoes, envios_moeda\ne trocas_vantagem (mais recentes primeiro)
+    activate banco
+    banco --> transacoes : registros
+    deactivate banco
+    transacoes --> service : moedas recebidas e trocas
+    deactivate transacoes
+  end
+
+  service --> controller : saldo e transações
+  deactivate service
+  controller --> auth : 200 OK (saldo, transacoes)
+  deactivate controller
+  auth --> api : 200 OK
+  api --> tela : dados do extrato
+  tela --> usuario : exibe o saldo e as transações\n(+ entradas, - saídas)
+
+else token ausente, inválido ou expirado
+  auth --> api : 401 Unauthorized (erro)
+  api -> api : encerra a sessão
+  api --> tela : ErroApi e evento "sessao-expirada"
+  tela --> usuario : volta para a tela de login
+
+else perfil = empresa
+  auth --> api : 403 Forbidden (erro)
+  deactivate auth
+  api --> tela : ErroApi
+  deactivate api
+  tela --> usuario : exibe a mensagem de acesso negado
+end
+
+deactivate tela
+
+@enduml

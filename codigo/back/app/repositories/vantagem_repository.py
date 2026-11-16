@@ -1,24 +1,19 @@
-from app.extensions import db
+"""Repositório das vantagens oferecidas pelas empresas parceiras."""
 from app.models.vantagem import Vantagem
+from app.repositories.base_repository import BaseRepository
 
 
-class VantagemRepository:
-    # def registrar(self, vantagem, *entidades_alteradas):
-    #     db.session.add(vantagem)
-    #     # for entidade in entidades_alteradas:
-    #     #     db.session.add(entidade)
-    #     # db.session.commit()
-    #     return vantagem
+class VantagemRepository(BaseRepository):
+    model = Vantagem
 
-    
-    def criar(self, vantagem):
-        # Associa o id da empresa na vantagem
-        # vantagem.empresa_id = empresa_id
-        
-        # O SQLAlchemy agora recebe um objeto mapeado (Vantagem), resolvendo o erro anterior!
-        db.session.add(vantagem)
-        db.session.commit()
-        return vantagem
-    
     def listar_todas(self):
-        return Vantagem.query.order_by(Vantagem.empresa_id.desc()).all()
+        """Catálogo do aluno: das mais baratas para as mais caras."""
+        return Vantagem.query.order_by(Vantagem.custo, Vantagem.nome).all()
+
+    def listar_por_empresa(self, empresa_id):
+        """Vantagens de uma empresa, das cadastradas mais recentemente primeiro."""
+        return (
+            Vantagem.query.filter_by(empresa_id=empresa_id)
+            .order_by(Vantagem.id.desc())
+            .all()
+        )

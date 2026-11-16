@@ -83,16 +83,17 @@ CREATE TABLE empresas_parceiras (
 );
 
 -- ---------------------------------------------------------------------
--- [PLANEJADA] Vantagens oferecidas pelas empresas parceiras.
--- Relacionamento N:1 com empresas_parceiras. foto guarda o caminho/URL.
+-- [IMPLEMENTADA] Vantagens oferecidas pelas empresas parceiras.
+-- Relacionamento N:1 com empresas_parceiras. foto guarda o nome do arquivo
+-- na pasta de uploads (opcional); custo é em moedas.
 -- ---------------------------------------------------------------------
 CREATE TABLE vantagens (
-    id            INTEGER      NOT NULL PRIMARY KEY,
-    nome          VARCHAR(120) NOT NULL,
-    descricao     TEXT         NOT NULL,
-    foto          VARCHAR(255),
-    custo_moedas  INTEGER      NOT NULL CHECK (custo_moedas > 0),
-    empresa_id    INTEGER      NOT NULL,
+    id          INTEGER      NOT NULL PRIMARY KEY,
+    nome        VARCHAR(120) NOT NULL,
+    descricao   VARCHAR(500) NOT NULL,
+    custo       INTEGER      NOT NULL CHECK (custo > 0),
+    foto        VARCHAR(255),
+    empresa_id  INTEGER      NOT NULL,
     FOREIGN KEY (empresa_id) REFERENCES empresas_parceiras (id)
 );
 
@@ -125,7 +126,7 @@ CREATE TABLE envios_moeda (
 -- ---------------------------------------------------------------------
 -- [IMPLEMENTADA] Troca de moedas por uma vantagem. codigo é o cupom
 -- enviado por e-mail ao aluno e à empresa para conferência na troca.
--- A coluna vantagem_id entra junto com a tabela vantagens [PLANEJADA].
+-- A coluna vantagem_id entra junto com a troca de vantagens [PLANEJADA].
 -- ---------------------------------------------------------------------
 CREATE TABLE trocas_vantagem (
     id      INTEGER     NOT NULL PRIMARY KEY,

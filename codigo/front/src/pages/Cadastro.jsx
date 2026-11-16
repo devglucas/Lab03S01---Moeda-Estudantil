@@ -28,20 +28,6 @@ const TIPOS = [
 
 const MASCARAS = { cpf: mascaraCpf, rg: mascaraRg, cnpj: mascaraCnpj };
 
-const CHAVE_USUARIOS = "usuario";
-
-function salvarLocal({ email, senha, tipo }) {
-  const emailNormalizado = email.trim().toLowerCase();
-
-  const valores = {
-    email: emailNormalizado,
-    senha,
-    tipo
-  };
-
-  localStorage.setItem(CHAVE_USUARIOS, JSON.stringify(valores));
-}
-
 // onCadastrado: chamado após o cadastro com sucesso (ex.: ir para o login).
 // onVoltar: chamado ao clicar em "Já tenho conta".
 export default function Cadastro({ onCadastrado, onVoltar }) {
@@ -121,8 +107,6 @@ export default function Cadastro({ onCadastrado, onVoltar }) {
       if (tipo === "aluno") await alunosApi.criar(dados);
       else if (tipo === "professor") await professorApi.criar(dados);
       else await empresasApi.criar(dados);
-
-      salvarLocal({ email: form.email, senha: form.senha, tipo });
 
       setForm(VAZIO);
       setAviso({ tipo: "sucesso", texto: "Cadastro realizado com sucesso." });

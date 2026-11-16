@@ -18,15 +18,12 @@ ALUNO = {
 }
 
 
-def _envio(client):
-    professor = client.post("/api/professores", json=PROFESSOR).get_json()
+def _envio(client, entrar):
+    """Cadastra professor e aluno e devolve o envio e o login do professor."""
+    client.post("/api/professores", json=PROFESSOR)
     aluno = client.post("/api/alunos", json=ALUNO).get_json()
-    return {
-        "professorId": professor["id"],
-        "alunoId": aluno["id"],
-        "valor": 100,
-        "mensagem": "Ótima participação",
-    }
+    envio = {"alunoId": aluno["id"], "valor": 100, "mensagem": "Ótima participação"}
+    return envio, entrar(PROFESSOR["email"])
 
 
 def _configurar_smtp(client):
@@ -47,12 +44,12 @@ def _mensagens(smtp):
     }
 
 
-def test_professor_e_aluno_recebem_templates_diferentes(client):
-    envio = _envio(client)
+def test_professor_e_aluno_recebem_templates_diferentes(client, entrar):
+    envio, cabecalho = _envio(client, entrar)
     _configurar_smtp(client)
 
     with mock.patch("smtplib.SMTP") as smtp:
-        resp = client.post("/api/transacoes", json=envio)
+        resp = client.post("/api/transacoes", json=envio, headers=cabecalho)
 
     assert resp.status_code == 201
     mensagens = _mensagens(smtp)
@@ -74,12 +71,12 @@ def test_professor_e_aluno_recebem_templates_diferentes(client):
     assert "saldo atual é de 100" in corpo
 
 
-def test_usa_as_credenciais_e_o_timeout_configurados(client):
-    envio = _envio(client)
+def test_usa_as_credenciais_e_o_timeout_configurados(client, entrar):
+    envio, cabecalho = _envio(client, entrar)
     _configurar_smtp(client)
 
     with mock.patch("smtplib.SMTP") as smtp:
-        client.post("/api/transacoes", json=envio)
+        client.post("/api/transacoes", json=envio, headers=cabecalho)
 
     smtp.assert_called_with("smtp.teste", 587, timeout=10)
     conexao = smtp.return_value.__enter__.return_value
@@ -87,29 +84,29 @@ def test_usa_as_credenciais_e_o_timeout_configurados(client):
     conexao.login.assert_called_with("usuario", "segredo")
 
 
-def test_falha_no_email_nao_desfaz_o_envio(client):
-    envio = _envio(client)
+def test_falha_no_email_nao_desfaz_o_envio(client, entrar):
+    envio, cabecalho = _envio(client, entrar)
     _configurar_smtp(client)
 
     with mock.patch("smtplib.SMTP", side_effect=OSError("sem conexão")):
-        resp = client.post("/api/transacoes", json=envio)
+        resp = client.post("/api/transacoes", json=envio, headers=cabecalho)
 
     assert resp.status_code == 201
     assert client.get(f"/api/alunos/{envio['alunoId']}").get_json()["saldo"] == 100
 
 
-def test_saldo_insuficiente_nao_envia_email(client):
-    envio = _envio(client)
+def test_saldo_insuficiente_nao_envia_email(client, entrar):
+    envio, cabecalho = _envio(client, entrar)
     _configurar_smtp(client)
 
     with mock.patch("smtplib.SMTP") as smtp:
-        client.post("/api/transacoes", json={**envio, "valor": 5000})
+        client.post("/api/transacoes", json={**envio, "valor": 5000}, headers=cabecalho)
 
     smtp.assert_not_called()
 
 
-def test_falha_na_gravacao_nao_envia_email(client):
-    envio = _envio(client)
+def test_falha_na_gravacao_nao_envia_email(client, entrar):
+    envio, cabecalho = _envio(client, entrar)
     _configurar_smtp(client)
 
     def falhar(*_):
@@ -118,7 +115,7 @@ def test_falha_na_gravacao_nao_envia_email(client):
     event.listen(EnvioMoeda, "before_insert", falhar)
     try:
         with mock.patch("smtplib.SMTP") as smtp:
-            resp = client.post("/api/transacoes", json=envio)
+            resp = client.post("/api/transacoes", json=envio, headers=cabecalho)
     finally:
         event.remove(EnvioMoeda, "before_insert", falhar)
 
@@ -126,48 +123,48 @@ def test_falha_na_gravacao_nao_envia_email(client):
     smtp.assert_not_called()
 
 
-def test_sem_servidor_configurado_nao_abre_conexao(client):
-    envio = _envio(client)
+def test_sem_servidor_configurado_nao_abre_conexao(client, entrar):
+    envio, cabecalho = _envio(client, entrar)
 
     with mock.patch("smtplib.SMTP") as smtp:
-        resp = client.post("/api/transacoes", json=envio)
+        resp = client.post("/api/transacoes", json=envio, headers=cabecalho)
 
     assert resp.status_code == 201
     smtp.assert_not_called()
 
 
-def test_tenta_de_novo_quando_o_servidor_limita_os_envios(client):
-    envio = _envio(client)
+def test_tenta_de_novo_quando_o_servidor_limita_os_envios(client, entrar):
+    envio, cabecalho = _envio(client, entrar)
     _configurar_smtp(client)
     limite = smtplib.SMTPDataError(550, b"Too many emails per second")
 
     with mock.patch("smtplib.SMTP") as smtp, mock.patch("time.sleep") as espera:
         conexao = smtp.return_value.__enter__.return_value
         conexao.send_message.side_effect = [None, limite, None]
-        resp = client.post("/api/transacoes", json=envio)
+        resp = client.post("/api/transacoes", json=envio, headers=cabecalho)
 
     assert resp.status_code == 201
     assert conexao.send_message.call_count == 3
     espera.assert_called_once()
 
 
-def test_desiste_depois_de_varias_recusas_sem_desfazer_o_envio(client):
-    envio = _envio(client)
+def test_desiste_depois_de_varias_recusas_sem_desfazer_o_envio(client, entrar):
+    envio, cabecalho = _envio(client, entrar)
     _configurar_smtp(client)
     limite = smtplib.SMTPDataError(550, b"Too many emails per second")
 
     with mock.patch("smtplib.SMTP") as smtp, mock.patch("time.sleep"):
         conexao = smtp.return_value.__enter__.return_value
         conexao.send_message.side_effect = limite
-        resp = client.post("/api/transacoes", json=envio)
+        resp = client.post("/api/transacoes", json=envio, headers=cabecalho)
 
     assert resp.status_code == 201
     assert conexao.send_message.call_count == 6  # 3 tentativas para cada e-mail
     assert client.get(f"/api/alunos/{envio['alunoId']}").get_json()["saldo"] == 100
 
 
-def test_fora_dos_testes_a_requisicao_nao_espera_o_email(client):
-    envio = _envio(client)
+def test_fora_dos_testes_a_requisicao_nao_espera_o_email(client, entrar):
+    envio, cabecalho = _envio(client, entrar)
     _configurar_smtp(client)
     client.application.testing = False
     liberar = threading.Event()
@@ -179,7 +176,7 @@ def test_fora_dos_testes_a_requisicao_nao_espera_o_email(client):
 
     with mock.patch("smtplib.SMTP") as smtp:
         smtp.return_value.__enter__.return_value.send_message.side_effect = entregar
-        resp = client.post("/api/transacoes", json=envio)
+        resp = client.post("/api/transacoes", json=envio, headers=cabecalho)
 
         # A resposta chegou com o servidor de e-mail ainda ocupado.
         assert resp.status_code == 201

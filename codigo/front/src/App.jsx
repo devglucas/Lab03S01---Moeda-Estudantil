@@ -1,91 +1,70 @@
 import { useEffect, useState } from "react";
 
-import Alunos from "./pages/Alunos.jsx";
-import Empresas from "./pages/Empresas.jsx";
-import Extrato from "./pages/Extrato.jsx";
-import Professores from "./pages/Professores.jsx";
-import Transacao from "./pages/Transacao.jsx";
-import Login from "./pages/Login.jsx";
+import { EVENTO_SESSAO_EXPIRADA } from "./api.js";
 import Cadastro from "./pages/Cadastro.jsx";
+import CatalogoVantagens from "./pages/CatalogoVantagens.jsx";
+import Extrato from "./pages/Extrato.jsx";
+import Login from "./pages/Login.jsx";
+import Transacao from "./pages/Transacao.jsx";
 import Vantagem from "./pages/Vantagem.jsx";
+import { encerrarSessao, iniciarSessao, sessaoAtual } from "./sessao.js";
 
-const ABAS_SEM_LOGIN = [
+const ABAS_VISITANTE = [
   { id: "entrar", rotulo: "Entrar", Pagina: Login },
-  { id: "cadastro", rotulo: "Cadastro", Pagina: Cadastro },
+  { id: "cadastro", rotulo: "Criar conta", Pagina: Cadastro },
 ];
 
-const ABAS_ALUNO = [
-  { id: "regatarVantagem", rotulo: "Restagar Vantagem", Pagina: Transacao },
-  { id: "extrato", rotulo: "Extrato", Pagina: Extrato }
-];
-const ABAS_EMPRESA = [{ id: "cadastroVantagem", rotulo: "Cadastro Vantagem", Pagina: Vantagem }];
-
-const ABAS_PROFESSOR = [
-  { id: "alunos", rotulo: "Alunos", Pagina: Alunos },
-  { id: "empresas", rotulo: "Empresas parceiras", Pagina: Empresas },
-  { id: "professores", rotulo: "Professores", Pagina: Professores },
-  { id: "transacoes", rotulo: "Transacoes", Pagina: Transacao },
-  { id: "extrato", rotulo: "Extrato", Pagina: Extrato },
-];
-
-// Qualquer tipo logado que não seja aluno usa as abas de professor (como antes).
-function abasDoTipo(tipo) {
-  console.log(tipo)
-  if (tipo == null) return ABAS_SEM_LOGIN;
-  if (tipo == "aluno") return ABAS_ALUNO;
-  if (tipo == "professor") return ABAS_PROFESSOR;
-  if (tipo == "empresa") return ABAS_EMPRESA;
-  return ABAS_SEM_LOGIN;
-}
-
-// Usuário logado: { email, tipo }. Fica na chave "usuario" (a lista de cadastros é "usuarios").
-function lerUsuario() {
-  try {
-    return JSON.parse(localStorage.getItem("usuario"));
-  } catch {
-    return null;
-  }
-}
+// Cada perfil só vê as funcionalidades que são responsabilidade dele.
+const ABAS_POR_TIPO = {
+  aluno: [
+    { id: "vantagens", rotulo: "Vantagens", Pagina: CatalogoVantagens },
+    { id: "extrato", rotulo: "Extrato", Pagina: Extrato },
+  ],
+  professor: [
+    { id: "enviar", rotulo: "Enviar moedas", Pagina: Transacao },
+    { id: "extrato", rotulo: "Extrato", Pagina: Extrato },
+  ],
+  empresa: [{ id: "vantagens", rotulo: "Minhas vantagens", Pagina: Vantagem }],
+};
 
 export default function App() {
-  // Lido direto do localStorage na primeira renderização (sem piscar a tela de login).
-  let usuario = null;
+  const [sessao, setSessao] = useState(sessaoAtual);
   const [abaId, setAbaId] = useState(null);
-  const [abas, setAbas] = useState(ABAS_SEM_LOGIN);
+  // Mensagem mostrada na tela de login (conta criada, sessão expirada).
+  const [aviso, setAviso] = useState(null);
 
-  let tipo = null;
-  const [tipoState, setTipoState] = useState(null);
+  useEffect(() => {
+    function expirou() {
+      setSessao(null);
+      setAbaId("entrar");
+      setAviso({ tipo: "erro", texto: "Sua sessão expirou. Entre novamente." });
+    }
+    window.addEventListener(EVENTO_SESSAO_EXPIRADA, expirou);
+    return () => window.removeEventListener(EVENTO_SESSAO_EXPIRADA, expirou);
+  }, []);
 
-  // let abas = abasDoTipo(tipo);
-  // Se a aba escolhida não existe no conjunto atual (ex.: após login/logout), usa a primeira.
+  const usuario = sessao?.usuario ?? null;
+  const abas = (usuario && ABAS_POR_TIPO[usuario.tipo]) || ABAS_VISITANTE;
   const abaAtual = abas.find((aba) => aba.id === abaId) ?? abas[0];
   const { Pagina } = abaAtual;
 
-  // function entrar({ email, tipo }) {
-  //   const logado = { email, tipo };
-  //   localStorage.setItem("usuario", JSON.stringify(logado));
-  //   setUsuario(logado);
-  //   setAbaId(null);
-  // }
-
-  useEffect(() => {
-    usuario = lerUsuario()
-    console.log(usuario)
-    tipo = usuario?.tipo ?? null
-    setTipoState(tipo)
-    console.log(tipo)
-    // tipo = usuario?.tipo ?? null
-    setAbas(abasDoTipo(tipo))
-    // console.log(tipo)
-    // console.log(abas)
-  }, [])
+  function entrar(novaSessao) {
+    iniciarSessao(novaSessao);
+    setSessao(novaSessao);
+    setAbaId(null);
+    setAviso(null);
+  }
 
   function sair() {
-    localStorage.removeItem("usuario");
-    usuario = null;
+    encerrarSessao();
+    setSessao(null);
     setAbaId(null);
-    tipoState(null)
-    tipo = null
+    setAviso(null);
+  }
+
+  function cadastrado() {
+    setAbaId("entrar");
+    setAviso({ tipo: "sucesso", texto: "Conta criada. Entre com seu e-mail e senha." });
   }
 
   return (
@@ -103,19 +82,25 @@ export default function App() {
               {aba.rotulo}
             </button>
           ))}
-          {tipoState != null && (
-            <button type="button" className="aba" onClick={sair}>
+        </nav>
+        {usuario && (
+          <div className="usuario-logado">
+            <span>{usuario.nome}</span>
+            <button type="button" className="secundario" onClick={sair}>
               Sair
             </button>
-          )}
-        </nav>
+          </div>
+        )}
       </header>
 
       <main>
         <Pagina
-        // onLogin={entrar}
-        // onCadastrado={() => setAbaId("entrar")}
-        // onVoltar={() => setAbaId("entrar")}
+          key={abaAtual.id}
+          usuario={usuario}
+          aviso={aviso}
+          onLogin={entrar}
+          onCadastrado={cadastrado}
+          onVoltar={() => setAbaId("entrar")}
         />
       </main>
     </>

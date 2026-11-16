@@ -2,9 +2,13 @@ POST/PUT /api/alunos  (na edicao a senha e opcional)
 POST/PUT /api/instituicoes
 POST/PUT /api/empresas  (na edicao a senha e opcional)
 POST/PUT /api/professores  (na edicao a senha e opcional; ao ser criado recebe 1000 moedas)
-POST /api/transacoes  (envio de moedas)
-GET /api/transacoes/extrato/professor/{id}
-GET /api/transacoes/extrato/aluno/{id}
+POST /api/auth/login  (devolve o token usado nas rotas abaixo)
+POST /api/transacoes  (envio de moedas; header Authorization: Bearer <token do professor>)
+GET /api/transacoes/extrato  (extrato do aluno ou professor logado)
+GET /api/vantagens  (catalogo; token de aluno)
+GET /api/vantagens/minhas  (token de empresa)
+POST/PUT /api/vantagens  (token de empresa; multipart/form-data: nome, descricao, custo e foto opcional)
+DELETE /api/vantagens/{id}  (token de empresa)
 
 {
   "nome": "João",
@@ -53,7 +57,11 @@ GET /api/transacoes/extrato/aluno/{id}
 }
 
 {
-  "professorId": 1,
+  "email": "carla@puc.br",
+  "senha": "senha123"
+}
+
+{
   "alunoId": 2,
   "valor": 100,
   "mensagem": "Otima participacao em aula"

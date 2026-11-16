@@ -53,13 +53,13 @@ entity "empresas_parceiras" as empresas #FFFFFF ##333333 {
   * cnpj : VARCHAR(14) <<UNIQUE>>
 }
 
-entity "vantagens" as vantagens <<planejada>> #EEEEEE ##[dashed]888888 {
+entity "vantagens" as vantagens #FFFFFF ##333333 {
   * id : INTEGER <<PK>>
   --
   * nome : VARCHAR(120)
-  * descricao : TEXT
+  * descricao : VARCHAR(500)
+  * custo : INTEGER
   foto : VARCHAR(255)
-  * custo_moedas : INTEGER
   * empresa_id : INTEGER <<FK>>
 }
 

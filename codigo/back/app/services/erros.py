@@ -24,6 +24,14 @@ class DadosInvalidos(ErroDeNegocio):
     status = 400
 
 
+class NaoAutenticado(ErroDeNegocio):
+    status = 401
+
+
+class AcessoNegado(ErroDeNegocio):
+    status = 403
+
+
 class NaoEncontrado(ErroDeNegocio):
     status = 404
 

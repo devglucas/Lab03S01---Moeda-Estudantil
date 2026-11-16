@@ -1,56 +1,50 @@
-from flask import Blueprint, jsonify, request
+"""Controller das vantagens em /api/vantagens.
 
-# from app.services.professor_service import NaoEncontradoError, ValidacaoError
+A empresa logada cadastra, edita e remove as próprias vantagens (formulário
+multipart, por causa da foto); o aluno logado consulta o catálogo completo.
+"""
+from flask import Blueprint, g, jsonify, request
+
+from app.autenticacao import exige_perfil
 from app.services.vantagem_service import VantagemService
 
 vantagem_bp = Blueprint("vantagens", __name__, url_prefix="/api/vantagens")
-service = VantagemService()
+servico = VantagemService()
 
 
-# @transacao_bp.errorhandler(ValidacaoError)
-# def _validacao(e):
-#     return jsonify({"erro": str(e)}), 400
-
-
-# @transacao_bp.errorhandler(NaoEncontradoError)
-# def _nao_encontrado(e):
-#     return jsonify({"erro": str(e)}), 404
-
-
-# def _extrato_json(extrato):
-#     return {
-#         "saldo": extrato["saldo"],
-#         "transacoes": [t.to_dict() for t in extrato["transacoes"]],
-#     }
-
-
-
-# CERTO para requisições com FormData:
-@vantagem_bp.post("")
-def criar():
-    # request.form pega os campos de texto enviados via FormData
-    dados = request.form.to_dict() 
-    vantagem = service.criar(dados, request.files)
-    return jsonify(vantagem.to_dict()), 201
+def _foto():
+    arquivo = request.files.get("foto")
+    return arquivo if arquivo and arquivo.filename else None
 
 
 @vantagem_bp.get("")
-def buscar_todas_vantagens():
-    return jsonify([t.to_dict() for t in service.listar_todas()])
+@exige_perfil("aluno")
+def listar():
+    return jsonify([vantagem.to_dict() for vantagem in servico.listar_todas()])
 
 
-# @transacao_bp.post("")
-# def enviar_moedas():
-#     # Com autenticação, professorId deve vir do usuário logado, não do corpo.
-#     transacao = service.enviar_moedas(request.get_json(silent=True) or {})
-#     return jsonify(transacao.to_dict()), 201
+@vantagem_bp.get("/minhas")
+@exige_perfil("empresa")
+def listar_minhas():
+    return jsonify([vantagem.to_dict() for vantagem in servico.listar_da_empresa(g.usuario)])
 
 
-# @transacao_bp.get("/extrato/professor/<int:professor_id>")
-# def extrato_professor(professor_id):
-#     return jsonify(_extrato_json(service.extrato_professor(professor_id)))
+@vantagem_bp.post("")
+@exige_perfil("empresa")
+def criar():
+    vantagem = servico.criar(g.usuario, request.form.to_dict(), _foto())
+    return jsonify(vantagem.to_dict()), 201
 
 
-# @transacao_bp.get("/extrato/aluno/<int:aluno_id>")
-# def extrato_aluno(aluno_id):
-#     return jsonify(_extrato_json(service.extrato_aluno(aluno_id)))
+@vantagem_bp.put("/<int:vantagem_id>")
+@exige_perfil("empresa")
+def atualizar(vantagem_id):
+    vantagem = servico.atualizar(g.usuario, vantagem_id, request.form.to_dict(), _foto())
+    return jsonify(vantagem.to_dict())
+
+
+@vantagem_bp.delete("/<int:vantagem_id>")
+@exige_perfil("empresa")
+def remover(vantagem_id):
+    servico.remover(g.usuario, vantagem_id)
+    return "", 204
