@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import { EVENTO_SESSAO_EXPIRADA } from "./api.js";
 import Cadastro from "./pages/Cadastro.jsx";
+import CatalogoVantagens from "./pages/CatalogoVantagens.jsx";
 import Extrato from "./pages/Extrato.jsx";
 import Login from "./pages/Login.jsx";
 import Transacao from "./pages/Transacao.jsx";
@@ -15,7 +16,10 @@ const ABAS_VISITANTE = [
 
 // Cada perfil só vê as funcionalidades que são responsabilidade dele.
 const ABAS_POR_TIPO = {
-  aluno: [{ id: "extrato", rotulo: "Extrato", Pagina: Extrato }],
+  aluno: [
+    { id: "vantagens", rotulo: "Vantagens", Pagina: CatalogoVantagens },
+    { id: "extrato", rotulo: "Extrato", Pagina: Extrato },
+  ],
   professor: [
     { id: "enviar", rotulo: "Enviar moedas", Pagina: Transacao },
     { id: "extrato", rotulo: "Extrato", Pagina: Extrato },

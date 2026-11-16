@@ -284,3 +284,79 @@ td.texto-longo {
   font-size: 0.875rem;
   color: var(--texto-suave);
 }
+
+.catalogo {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vantagem {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+}
+
+.vantagem img,
+.vantagem-sem-foto {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  background: var(--fundo);
+}
+
+.vantagem-sem-foto {
+  display: grid;
+  place-items: center;
+  font-size: 0.875rem;
+  color: var(--texto-suave);
+}
+
+.vantagem-corpo {
+  display: grid;
+  flex: 1;
+  align-content: start;
+  gap: 4px;
+  padding: 12px;
+}
+
+.vantagem-corpo h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.vantagem-corpo p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--texto-suave);
+}
+
+.vantagem-empresa {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--primaria);
+  text-transform: uppercase;
+}
+
+.vantagem-rodape {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  font-size: 0.875rem;
+  border-top: 1px solid var(--borda);
+}
+
+.vantagem-rodape .disponivel {
+  color: var(--sucesso-texto);
+}
+
+.vantagem-rodape .falta {
+  color: var(--texto-suave);
+}
