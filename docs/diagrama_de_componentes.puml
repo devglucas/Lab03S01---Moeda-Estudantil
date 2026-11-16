@@ -11,11 +11,13 @@ actor "Usuário" as usuario
 node "Navegador" {
   package "Front-end (React + Vite)" as front {
     [App] as app
-    [Página Alunos] as pagAlunos
-    [Página Empresas] as pagEmpresas
-    [Página Professores] as pagProfessores
-    [Página Transações] as pagTransacoes
-    [Página Extrato] as pagExtrato
+    [Página Login] as pagLogin
+    [Página Cadastro] as pagCadastro
+    [Página Enviar moedas\n(professor)] as pagTransacoes
+    [Página Extrato\n(aluno e professor)] as pagExtrato
+    [Página Minhas vantagens\n(empresa)] as pagVantagens
+    [Página Catálogo de vantagens\n(aluno)] as pagCatalogo
+    [Sessão\n(sessao.js)] as sessao
     [Componentes de UI\n(Campo, Aviso)] as ui
     [Formatação\n(máscaras CPF/RG/CNPJ)] as formatacao
     [Cliente da API\n(api.js)] as clienteApi
@@ -25,21 +27,26 @@ node "Navegador" {
 node "Servidor (Flask)" {
   package "Back-end (API REST)" as back {
     [Aplicação Flask\n(create_app)] as flask
+    [Autenticação\n(token JWT, exige_perfil)] as autenticacao
 
     package "Controllers" {
+      [AuthController] as ctrlAuth
       [AlunoController] as ctrlAluno
       [EmpresaController] as ctrlEmpresa
       [InstituicaoController] as ctrlInst
       [ProfessorController] as ctrlProfessor
       [TransacaoController] as ctrlTransacao
+      [VantagemController] as ctrlVantagem
     }
 
     package "Services" {
+      [AuthService] as svcAuth
       [AlunoService] as svcAluno
       [EmpresaService] as svcEmpresa
       [InstituicaoService] as svcInst
       [ProfessorService] as svcProfessor
       [TransacaoService] as svcTransacao
+      [VantagemService] as svcVantagem
       [NotificacaoService] as svcNotificacao
       [EmailService] as svcEmail
       [Erros de negócio] as erros
@@ -53,6 +60,7 @@ node "Servidor (Flask)" {
       [UsuarioRepository] as repUsuario
       [ProfessorRepository] as repProfessor
       [TransacaoRepository] as repTransacao
+      [VantagemRepository] as repVantagem
     }
 
     package "Models (SQLAlchemy)" {
@@ -64,6 +72,7 @@ node "Servidor (Flask)" {
       [Transacao] as mTransacao
       [EnvioMoeda] as mEnvio
       [TrocaVantagem] as mTroca
+      [Vantagem] as mVantagem
     }
 
     [Templates de e-mail\n(professor e aluno)] as templates
@@ -73,46 +82,58 @@ node "Servidor (Flask)" {
 }
 
 database "SQLite\n(moedas.db)" as sqlite
+folder "Fotos das vantagens\n(uploads/)" as uploads
 cloud "Servidor SMTP\n(Mailtrap)" as smtp
 
-interface "API REST (JSON)\n/api/alunos\n/api/empresas\n/api/instituicoes\n/api/professores\n/api/transacoes" as rest
+interface "API REST (JSON)\n/api/auth\n/api/alunos\n/api/empresas\n/api/instituicoes\n/api/professores\n/api/transacoes\n/api/vantagens" as rest
 
 usuario --> app
-app --> pagAlunos
-app --> pagEmpresas
-app --> pagProfessores
+app --> pagLogin
+app --> pagCadastro
 app --> pagTransacoes
 app --> pagExtrato
-pagAlunos --> ui
-pagEmpresas --> ui
-pagProfessores --> ui
+app --> pagVantagens
+app --> pagCatalogo
+app --> sessao
+pagLogin --> ui
+pagCadastro --> ui
 pagTransacoes --> ui
 pagExtrato --> ui
-pagAlunos --> formatacao
-pagEmpresas --> formatacao
-pagProfessores --> formatacao
-pagAlunos --> clienteApi
-pagEmpresas --> clienteApi
-pagProfessores --> clienteApi
+pagVantagens --> ui
+pagCatalogo --> ui
+pagCadastro --> formatacao
+pagLogin --> clienteApi
+pagCadastro --> clienteApi
 pagTransacoes --> clienteApi
 pagExtrato --> clienteApi
-
+pagVantagens --> clienteApi
+pagCatalogo --> clienteApi
+clienteApi --> sessao : token
 clienteApi ..> rest : HTTP / fetch
 rest -- flask
 
+flask --> ctrlAuth
 flask --> ctrlAluno
 flask --> ctrlEmpresa
 flask --> ctrlInst
 flask --> ctrlProfessor
 flask --> ctrlTransacao
+flask --> ctrlVantagem
+flask ..> uploads : serve /uploads
 flask ..> erros : converte em JSON
 flask --> seed
 
+ctrlAuth --> autenticacao
+ctrlTransacao --> autenticacao
+ctrlVantagem --> autenticacao
+autenticacao --> repUsuario
+ctrlAuth --> svcAuth
 ctrlAluno --> svcAluno
 ctrlEmpresa --> svcEmpresa
 ctrlInst --> svcInst
 ctrlProfessor --> svcProfessor
 ctrlTransacao --> svcTransacao
+ctrlVantagem --> svcVantagem
 
 svcAluno --> validacao
 svcEmpresa --> validacao
@@ -122,6 +143,8 @@ svcEmpresa ..> erros
 svcInst ..> erros
 svcProfessor ..> erros
 svcTransacao ..> erros
+svcAuth ..> erros
+svcVantagem ..> erros
 
 svcAluno --> repAluno
 svcAluno --> repUsuario
@@ -137,12 +160,15 @@ svcProfessor --> repUsuario
 svcProfessor --> repInst
 svcProfessor --> repTransacao
 svcTransacao --> repTransacao
-svcTransacao --> repProfessor
 svcTransacao --> repAluno
 svcTransacao --> svcNotificacao
 svcNotificacao --> templates
 svcNotificacao --> svcEmail
 svcEmail ..> smtp : SMTP
+svcAuth --> autenticacao
+svcAuth --> repUsuario
+svcVantagem --> repVantagem
+svcVantagem ..> uploads : grava e apaga fotos
 seed --> repInst
 
 repAluno --> mAluno
@@ -152,6 +178,7 @@ repUsuario --> mUsuario
 repProfessor --> mProfessor
 repTransacao --> mTransacao
 repTransacao --> mEnvio
+repVantagem --> mVantagem
 
 mAluno --|> mUsuario
 mEmpresa --|> mUsuario
@@ -162,6 +189,7 @@ mEnvio --|> mTransacao
 mTroca --|> mTransacao
 mTransacao --> mAluno
 mEnvio --> mProfessor
+mVantagem --> mEmpresa
 
 mUsuario ..> sqlite : ORM
 mAluno ..> sqlite : ORM
@@ -171,4 +199,5 @@ mProfessor ..> sqlite : ORM
 mTransacao ..> sqlite : ORM
 mEnvio ..> sqlite : ORM
 mTroca ..> sqlite : ORM
+mVantagem ..> sqlite : ORM
 @enduml
