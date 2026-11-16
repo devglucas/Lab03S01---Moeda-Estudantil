@@ -45,19 +45,21 @@ As instituições de ensino são pré-cadastradas. O desenvolvimento acontece em
 
 **Implementadas**
 
+- 🔑 **Login por perfil:** aluno, professor e empresa entram com e-mail e senha e recebem um token (JWT) válido por 8 horas. Cada perfil vê apenas as próprias telas, e as rotas da API conferem o perfil do token.
+- 📝 **Criar conta:** tela única de cadastro para aluno, professor e empresa parceira.
 - 🎓 **CRUD de Aluno:** cadastro, listagem, edição e exclusão de alunos, com validação de CPF, e-mail e instituição de ensino.
 - 🏢 **CRUD de Empresa Parceira:** cadastro, listagem, edição e exclusão de empresas, com validação de CNPJ e e-mail.
 - 👨‍🏫 **CRUD de Professor:** cadastro, listagem, edição e exclusão de professores. Ao ser cadastrado, o professor recebe 1.000 moedas.
 - 🏫 **Instituições de Ensino:** instituições pré-cadastradas automaticamente na primeira execução.
-- 🪙 **Envio de moedas:** o professor envia moedas a um aluno da mesma instituição, com motivo obrigatório. O débito, o crédito e o registro da transação são gravados de forma atômica.
-- 📄 **Extrato:** consulta do saldo e das transações de um professor (envios realizados) ou de um aluno (moedas recebidas e trocas).
+- 🪙 **Envio de moedas:** o professor logado envia moedas a um aluno da mesma instituição, com motivo obrigatório. O débito, o crédito e o registro da transação são gravados de forma atômica.
+- 📄 **Extrato:** o usuário logado consulta o próprio saldo e as próprias transações: o professor vê os envios realizados, e o aluno vê as moedas recebidas e as trocas.
+- 🎁 **Cadastro de vantagens:** a empresa logada cadastra, edita e remove as próprias vantagens, com nome, descrição, custo em moedas e foto opcional (PNG, JPG ou WEBP, até 5 MB).
+- 🛍️ **Listagem de vantagens:** o aluno logado vê o catálogo de todas as empresas, com foto, descrição e custo, e se o seu saldo é suficiente para cada uma.
 - 📨 **Notificações por e-mail:** a cada envio, o professor recebe uma confirmação e o aluno recebe um aviso, cada um com o seu template.
 - 🔐 **Senhas protegidas:** as senhas são armazenadas apenas como hash.
 
 **Planejadas (próximas sprints)**
 
-- 🔑 Autenticação de alunos, professores e empresas.
-- 🎁 Cadastro de vantagens pelas empresas parceiras.
 - 🔄 Troca de moedas por vantagens, com geração de cupom.
 - 🗓️ Crédito de 1.000 moedas a cada semestre para os professores.
 - 📨 Envio do cupom de troca por e-mail.
@@ -80,6 +82,7 @@ As instituições de ensino são pré-cadastradas. O desenvolvimento acontece em
 * **Banco de Dados:** SQLite
 * **ORM:** SQLAlchemy 2 (via Flask-SQLAlchemy 3.1)
 * **CORS:** Flask-Cors 4.0
+* **Autenticação:** PyJWT 2.13 (token assinado com `SECRET_KEY`)
 * **Testes:** pytest 8.3
 
 ---
@@ -89,12 +92,12 @@ As instituições de ensino são pré-cadastradas. O desenvolvimento acontece em
 O sistema segue a arquitetura **MVC**, com o back-end e o front-end separados e comunicando-se por uma **API REST** em JSON.
 
 - **View** (`codigo/front`): aplicação React que consome a API e exibe as telas de cadastro e listagem.
-- **Controller** (`codigo/back/app/controllers`): um *blueprint* do Flask por recurso (alunos, professores, empresas, instituições, transações). Só recebe a requisição HTTP, chama o service e devolve JSON.
+- **Controller** (`codigo/back/app/controllers`): um *blueprint* do Flask por recurso (autenticação, alunos, professores, empresas, instituições, transações e vantagens). Só recebe a requisição HTTP, chama o service e devolve JSON. As rotas protegidas usam o decorador `exige_perfil` (`app/autenticacao.py`), que lê o token do header `Authorization`, carrega o usuário logado e recusa perfis sem acesso.
 - **Model** (`codigo/back/app/models`): classes que representam as entidades do domínio e são mapeadas para tabelas do banco pelo ORM.
 
 No back-end, entre o controller e o model, há mais duas camadas:
 
-- **Service** (`codigo/back/app/services`): concentra as regras de negócio e as validações (campos obrigatórios, CPF, CNPJ, e-mail único entre os perfis, instituição existente). Quando algo está errado, lança um erro de negócio (`DadosInvalidos`, `NaoEncontrado` ou `Conflito`), que a aplicação converte em uma resposta JSON com o status HTTP correspondente (400, 404 ou 409).
+- **Service** (`codigo/back/app/services`): concentra as regras de negócio e as validações (campos obrigatórios, CPF, CNPJ, e-mail único entre os perfis, instituição existente). Quando algo está errado, lança um erro de negócio (`DadosInvalidos`, `NaoAutenticado`, `AcessoNegado`, `NaoEncontrado` ou `Conflito`), que a aplicação converte em uma resposta JSON com o status HTTP correspondente (400, 401, 403, 404 ou 409).
 - **Repository** (`codigo/back/app/repositories`): único ponto de acesso ao banco. Faz as consultas, grava e remove as entidades e controla a transação. Os services não usam o SQLAlchemy diretamente.
 
 Com essa separação, o controller não conhece regra de negócio, o service não conhece HTTP nem SQL, e as regras podem ser testadas sem banco, trocando o repositório por um falso.
@@ -112,6 +115,10 @@ Tela React  ->  fetch (src/api.js)  ->  Controller  ->  Service  ->  Repository 
 | Casos de uso | [`docs/caso_de_uso.png`](docs/caso_de_uso.png) |
 | Classes | [`docs/diagrama_de_classe.png`](docs/diagrama_de_classe.png) |
 | Componentes | [`docs/diagrama_de_componentes.png`](docs/diagrama_de_componentes.png) |
+| Sequência: enviar moedas | [`docs/diagrama_de_sequencia_envio_de_moedas.png`](docs/diagrama_de_sequencia_envio_de_moedas.png) |
+| Sequência: consultar extrato | [`docs/diagrama_de_sequencia_consultar_extrato.png`](docs/diagrama_de_sequencia_consultar_extrato.png) |
+| Sequência: cadastrar vantagem | [`docs/diagrama_de_sequencia_cadastro_de_vantagem.png`](docs/diagrama_de_sequencia_cadastro_de_vantagem.png) |
+| Sequência: listar vantagens | [`docs/diagrama_de_sequencia_listar_vantagens.puml`](docs/diagrama_de_sequencia_listar_vantagens.puml) |
 | Modelo Entidade-Relacionamento | [`docs/modelo-er.png`](docs/modelo-er.png) (script SQL comentado em [`docs/modelo-er.sql`](docs/modelo-er.sql)) |
 
 As histórias de usuário estão em [`docs/historias-de-usuario.md`](docs/historias-de-usuario.md).
@@ -133,7 +140,7 @@ O grupo escolheu usar um **ORM (Object-Relational Mapping)**, o **SQLAlchemy**, 
 
 - `app/extensions.py`: instância única do `SQLAlchemy`, compartilhada por toda a aplicação.
 - `app/models/`: as entidades persistentes. Cada model herda de `db.Model` e declara suas colunas, chaves e relacionamentos.
-- `app/repositories/`: um repositório por entidade (`AlunoRepository`, `EmpresaRepository`, `InstituicaoRepository`, `ProfessorRepository`, `TransacaoRepository`, `UsuarioRepository`), todos herdando de `BaseRepository`, que implementa buscar por id, salvar e remover. Os repositórios também fazem as consultas de unicidade (`login_em_uso`, `cpf_em_uso`, `cnpj_em_uso`).
+- `app/repositories/`: um repositório por entidade (`AlunoRepository`, `EmpresaRepository`, `InstituicaoRepository`, `ProfessorRepository`, `TransacaoRepository`, `UsuarioRepository`, `VantagemRepository`), todos herdando de `BaseRepository`, que implementa buscar por id, salvar e remover. Os repositórios também fazem as consultas de unicidade (`login_em_uso`, `cpf_em_uso`, `cnpj_em_uso`).
 - `app/__init__.py`: configura a conexão (`SQLALCHEMY_DATABASE_URI`), cria as tabelas e cadastra as instituições iniciais (`app/seed.py`).
 
 **Mapeamento da herança**
@@ -152,7 +159,9 @@ O banco é o **SQLite**, gravado no arquivo `codigo/back/moedas.db`. Ele não pr
 
 O projeto não usa migrações: `db.create_all()` só cria as tabelas que ainda não existem. Depois de uma mudança em uma tabela já existente, apague o `moedas.db` local para que ele seja recriado.
 
-O modelo completo, incluindo as tabelas planejadas para as próximas sprints, está em [`docs/modelo-er.png`](docs/modelo-er.png).
+As fotos das vantagens não ficam no banco: a tabela `vantagens` guarda só o nome do arquivo, salvo com um nome aleatório na pasta `codigo/back/uploads/` (fora do git) e servido em `http://localhost:5000/uploads/<nome>`.
+
+O modelo completo, incluindo o que está planejado para as próximas sprints, está em [`docs/modelo-er.png`](docs/modelo-er.png).
 
 ---
 
@@ -162,6 +171,8 @@ URL base: `http://localhost:5000/api`
 
 | Método | Rota | Descrição |
 | :--- | :--- | :--- |
+| `POST` | `/auth/login` | Entra com e-mail e senha e devolve o token e o perfil |
+| `GET` | `/auth/eu` 🔒 | Perfil do usuário logado, com o saldo atualizado |
 | `GET` | `/alunos` | Lista os alunos |
 | `GET` | `/alunos/{id}` | Busca um aluno |
 | `POST` | `/alunos` | Cadastra um aluno |
@@ -182,10 +193,15 @@ URL base: `http://localhost:5000/api`
 | `POST` | `/professores` | Cadastra um professor, que recebe 1.000 moedas |
 | `PUT` | `/professores/{id}` | Atualiza um professor (senha opcional) |
 | `DELETE` | `/professores/{id}` | Remove um professor que ainda não enviou moedas |
-| `GET` | `/transacoes` | Lista todas as transações |
-| `POST` | `/transacoes` | Envia moedas de um professor para um aluno |
-| `GET` | `/transacoes/extrato/professor/{id}` | Saldo e envios realizados pelo professor |
-| `GET` | `/transacoes/extrato/aluno/{id}` | Saldo, moedas recebidas e trocas do aluno |
+| `POST` | `/transacoes` 🔒 professor | Envia moedas do professor logado para um aluno |
+| `GET` | `/transacoes/extrato` 🔒 aluno ou professor | Saldo e transações do usuário logado |
+| `GET` | `/vantagens` 🔒 aluno | Catálogo com as vantagens de todas as empresas |
+| `GET` | `/vantagens/minhas` 🔒 empresa | Vantagens da empresa logada |
+| `POST` | `/vantagens` 🔒 empresa | Cadastra uma vantagem (`multipart/form-data`, foto opcional) |
+| `PUT` | `/vantagens/{id}` 🔒 empresa | Atualiza uma vantagem da empresa logada (sem foto nova, mantém a atual) |
+| `DELETE` | `/vantagens/{id}` 🔒 empresa | Remove uma vantagem da empresa logada |
+
+As rotas marcadas com 🔒 exigem o header `Authorization: Bearer <token>`, obtido no login. Sem token, ou com um token vencido, a resposta é `401`; com um perfil sem acesso, é `403`.
 
 Em caso de erro, a API responde com `{"erro": "mensagem"}` e, quando há campos inválidos, `{"erro": "...", "campos": {"campo": "mensagem"}}`. Exemplos de corpo das requisições estão em [`JSONTESTES.txt`](JSONTESTES.txt).
 
@@ -209,6 +225,8 @@ Nenhuma variável é obrigatória para rodar localmente. Os valores padrão já 
 | :--- | :--- | :--- |
 | `DATABASE_URL` | URL de conexão do banco | SQLite em `codigo/back/moedas.db` |
 | `FRONTEND_ORIGIN` | Origem liberada no CORS | `http://localhost:5173` |
+| `SECRET_KEY` | Chave que assina os tokens de login | Chave fixa de desenvolvimento |
+| `UPLOAD_FOLDER` | Pasta das fotos das vantagens | `codigo/back/uploads` |
 | `MAIL_HOST` | Servidor SMTP (por exemplo, o do Mailtrap) | Vazio (e-mails não são enviados) |
 | `MAIL_PORT` | Porta do servidor SMTP | `587` |
 | `MAIL_USER` | Usuário do SMTP | Vazio |
@@ -278,6 +296,7 @@ Acesse `http://localhost:5173` no navegador.
 │   ├── caso_de_uso.puml / .png
 │   ├── diagrama_de_classe.puml / .png
 │   ├── diagrama_de_componentes.puml / .png
+│   ├── diagrama_de_sequencia_*.puml / .png   # Um por caso de uso.
 │   ├── modelo-er.puml / .png / .sql
 │   └── historias-de-usuario.md
 │
@@ -290,11 +309,13 @@ Acesse `http://localhost:5173` no navegador.
     │   │   ├── extensions.py      # 🗄️ Instância do SQLAlchemy.
     │   │   ├── seed.py            # 🌱 Instituições de ensino iniciais.
     │   │   ├── validacao.py       # ✅ Funções de validação.
+    │   │   ├── autenticacao.py    # 🔑 Token de login e controle de acesso por perfil.
     │   │   ├── controllers/       # 🎮 Endpoints REST (blueprints).
     │   │   ├── services/          # 🧠 Regras de negócio e erros de negócio.
     │   │   ├── repositories/      # 🗃️ Acesso ao banco de dados.
     │   │   ├── models/            # 🧬 Entidades persistentes (ORM).
     │   │   └── templates/email/   # 📨 Templates dos e-mails.
+    │   ├── uploads/               # 🖼️ Fotos das vantagens (criada sozinha, fora do git).
     │   └── tests/                 # 🧪 Testes automatizados (pytest).
     │
     └── front/                     # 💻 Aplicação React
@@ -303,12 +324,13 @@ Acesse `http://localhost:5173` no navegador.
         ├── vite.config.js
         └── src/
             ├── main.jsx           # 🚀 Ponto de entrada do React.
-            ├── App.jsx            # 🧭 Navegação entre as telas.
-            ├── api.js             # 🔌 Chamadas HTTP para a API.
+            ├── App.jsx            # 🧭 Abas de cada perfil e login/logout.
+            ├── api.js             # 🔌 Chamadas HTTP para a API (com o token).
+            ├── sessao.js          # 🔑 Sessão do usuário logado.
             ├── formatacao.js      # 🛠️ Formatação de CPF e CNPJ.
             ├── styles.css         # 🎨 Estilos globais.
             ├── components/        # 🧱 Componentes reutilizáveis.
-            └── pages/             # 📄 Telas de cadastro, transações e extrato.
+            └── pages/             # 📄 Telas de login, cadastro, envio, extrato e vantagens.
 ```
 
 ---
@@ -323,7 +345,7 @@ source venv/bin/activate
 python -m pytest
 ```
 
-Eles cobrem o CRUD completo de aluno, professor, empresa parceira e instituição de ensino, a validação de campos obrigatórios, CPF e CNPJ, e as regras de unicidade (e-mail único entre todos os perfis, CPF, CNPJ e nome da instituição). Também cobrem o envio de moedas (saldo insuficiente, atomicidade e validações), o extrato de professor e aluno e os e-mails (template de cada destinatário e falhas no envio), sem enviar mensagens de verdade. Os testes de `tests/test_services.py` exercitam a camada de serviço sem banco, usando repositórios falsos.
+Eles cobrem o login (token, senha errada, token vencido e perfis sem acesso), o CRUD completo de aluno, professor, empresa parceira e instituição de ensino, a validação de campos obrigatórios, CPF e CNPJ, e as regras de unicidade (e-mail único entre todos os perfis, CPF, CNPJ e nome da instituição). Também cobrem o envio de moedas (saldo insuficiente, atomicidade e validações), o extrato de professor e aluno, o cadastro, a edição e a exclusão de vantagens (validações, foto opcional, limite de tamanho e acesso só às vantagens da própria empresa), o catálogo do aluno e os e-mails (template de cada destinatário e falhas no envio), sem enviar mensagens de verdade. As fotos enviadas nos testes vão para uma pasta temporária. Os testes de `tests/test_services.py` exercitam a camada de serviço sem banco, usando repositórios falsos.
 
 ---
 
