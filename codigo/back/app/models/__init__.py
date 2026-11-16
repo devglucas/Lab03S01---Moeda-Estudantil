@@ -5,6 +5,7 @@ from app.models.aluno import Aluno
 from app.models.empresa import EmpresaParceira
 from app.models.professor import Professor
 from app.models.transacao import EnvioMoeda, Transacao, TrocaVantagem
+from app.models.vantagem import Vantagem
 
 __all__ = [
     "Usuario",
@@ -15,4 +16,5 @@ __all__ = [
     "Transacao",
     "EnvioMoeda",
     "TrocaVantagem",
+    "Vantagem",
 ]
