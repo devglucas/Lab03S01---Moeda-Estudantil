@@ -1,35 +1,25 @@
 import { useEffect, useState } from "react";
 
-import { vantagemApi, empresasApi } from "../api.js";
+import { urlDaFoto, vantagemApi } from "../api.js";
 import Aviso from "../components/Aviso.jsx";
 import Campo from "../components/Campo.jsx";
 
-const VAZIO = {
-  nome: "",
-  descricao: "",
-  custo: "",
-  empresaId: "",
-  foto: null,
-};
+const VAZIO = { nome: "", descricao: "", custo: "", foto: null };
 
-export default function Vantagens() {
+// A empresa logada cadastra, edita e remove as próprias vantagens.
+export default function Vantagem() {
   const [vantagens, setVantagens] = useState([]);
-  const [empresas, setEmpresas] = useState([]);
   const [form, setForm] = useState(VAZIO);
-  const [editandoId, setEditandoId] = useState(null);
+  const [editando, setEditando] = useState(null);
   const [erros, setErros] = useState({});
   const [aviso, setAviso] = useState(null);
   const [salvando, setSalvando] = useState(false);
+  // O <input type="file"> não é controlado; trocar a key o esvazia.
+  const [chaveFoto, setChaveFoto] = useState(0);
 
   async function carregar() {
     try {
-      const [listaVantagens, listaEmpresas] = await Promise.all([
-        vantagemApi.listar(),
-        empresasApi.listar(),
-      ]);
-      console.log(listaVantagens)
-      setVantagens(listaVantagens);
-      setEmpresas(listaEmpresas);
+      setVantagens(await vantagemApi.minhas());
     } catch (erro) {
       setAviso({ tipo: "erro", texto: erro.message });
     }
@@ -40,18 +30,15 @@ export default function Vantagens() {
   }, []);
 
   function alterar(evento) {
-    const { name, value, type, files } = evento.target;
-    if (type === "file") {
-      setForm((atual) => ({ ...atual, [name]: files[0] ?? null }));
-    } else {
-      setForm((atual) => ({ ...atual, [name]: value }));
-    }
+    const { name, value, files } = evento.target;
+    setForm((atual) => ({ ...atual, [name]: files ? files[0] ?? null : value }));
   }
 
   function limpar() {
     setForm(VAZIO);
-    setEditandoId(null);
+    setEditando(null);
     setErros({});
+    setChaveFoto((chave) => chave + 1);
   }
 
   function editar(vantagem) {
@@ -59,12 +46,12 @@ export default function Vantagens() {
       nome: vantagem.nome,
       descricao: vantagem.descricao,
       custo: String(vantagem.custo),
-      empresaId: String(vantagem.empresaId),
-      foto: null, // O arquivo anterior não é recarregado no input file por segurança do browser
+      foto: null,
     });
-    setEditandoId(vantagem.id);
+    setEditando(vantagem);
     setErros({});
     setAviso(null);
+    setChaveFoto((chave) => chave + 1);
   }
 
   async function salvar(evento) {
@@ -72,35 +59,20 @@ export default function Vantagens() {
     setSalvando(true);
     setAviso(null);
 
-    const formData = new FormData();
+    const formulario = new FormData();
+    formulario.append("nome", form.nome);
+    formulario.append("descricao", form.descricao);
+    formulario.append("custo", form.custo);
+    if (form.foto) formulario.append("foto", form.foto);
 
-    formData.append("nome", form.nome);
-    formData.append("descricao", form.descricao);
-    formData.append("custo", form.custo);
-    formData.append("empresaId", form.empresaId);
-
-    // Adiciona a foto somente se existir
-    if (form.foto) {
-      formData.append("foto", form.foto);
-    }
-
-
-    console.log("FORM:", form);
-
-    for (const [chave, valor] of formData.entries()) {
-      console.log(chave, valor);
-    }
     try {
-      // Como o objeto API padrão utiliza application/json, 
-      // passamos o fetch customizado ou ajustamos o body para aceitar FormData 
-      // (o FormData remove automaticamente o Content-Type padrão para o browser setar o boundary correto).
-      // if (editandoId) {
-      //   await vantagemApi.atualizar(editandoId, formData);
-      //   setAviso({ tipo: "sucesso", texto: "Vantagem atualizada com sucesso." });
-      // } else {
-      await vantagemApi.criar(formData);
-      setAviso({ tipo: "sucesso", texto: "Vantagem cadastrada com sucesso." });
-      // }
+      if (editando) {
+        await vantagemApi.atualizar(editando.id, formulario);
+        setAviso({ tipo: "sucesso", texto: "Vantagem atualizada com sucesso." });
+      } else {
+        await vantagemApi.criar(formulario);
+        setAviso({ tipo: "sucesso", texto: "Vantagem cadastrada com sucesso." });
+      }
       limpar();
       await carregar();
     } catch (erro) {
@@ -116,7 +88,7 @@ export default function Vantagens() {
 
     try {
       await vantagemApi.remover(vantagem.id);
-      if (editandoId === vantagem.id) limpar();
+      if (editando?.id === vantagem.id) limpar();
       setAviso({ tipo: "sucesso", texto: "Vantagem removida." });
       await carregar();
     } catch (erro) {
@@ -127,22 +99,18 @@ export default function Vantagens() {
   return (
     <section className="pagina">
       <form className="cartao" onSubmit={salvar} noValidate>
-        <h2>{editandoId ? "Editar vantagem" : "Cadastrar vantagem"}</h2>
+        <h2>{editando ? "Editar vantagem" : "Cadastrar vantagem"}</h2>
         <Aviso aviso={aviso} />
 
         <div className="grade">
-          <Campo rotulo="Nome da vantagem" nome="nome" value={form.nome} onChange={alterar} erro={erros.nome} />
-
-          <Campo rotulo="Empresa parceira" erro={erros.empresaId}>
-            <select name="empresaId" value={form.empresaId} onChange={alterar}>
-              <option value="">Selecione</option>
-              {empresas.map((empresa) => (
-                <option key={empresa.id} value={empresa.id}>
-                  {empresa.nome}
-                </option>
-              ))}
-            </select>
-          </Campo>
+          <Campo
+            rotulo="Nome da vantagem"
+            nome="nome"
+            maxLength={120}
+            value={form.nome}
+            onChange={alterar}
+            erro={erros.nome}
+          />
 
           <Campo
             rotulo="Custo (moedas)"
@@ -155,8 +123,12 @@ export default function Vantagens() {
             erro={erros.custo}
           />
 
-          <Campo rotulo="Foto da vantagem (opcional)" erro={erros.foto}>
+          <Campo
+            rotulo={editando?.foto ? "Nova foto (opcional)" : "Foto do produto (opcional)"}
+            erro={erros.foto}
+          >
             <input
+              key={chaveFoto}
               type="file"
               name="foto"
               accept="image/png, image/jpeg, image/webp"
@@ -169,7 +141,7 @@ export default function Vantagens() {
               name="descricao"
               rows={3}
               maxLength={500}
-              placeholder="Descreva os detalhes da vantagem..."
+              placeholder="Ex.: 10% de desconto em qualquer livro da loja"
               value={form.descricao}
               onChange={alterar}
             />
@@ -177,19 +149,19 @@ export default function Vantagens() {
         </div>
 
         <div className="acoes">
-          {editandoId && (
+          {editando && (
             <button type="button" className="secundario" onClick={limpar}>
               Cancelar
             </button>
           )}
           <button type="submit" disabled={salvando}>
-            {editandoId ? "Salvar alterações" : "Cadastrar"}
+            {editando ? "Salvar alterações" : "Cadastrar"}
           </button>
         </div>
       </form>
 
       <div className="cartao">
-        <h2>Vantagens cadastradas</h2>
+        <h2>Minhas vantagens</h2>
         {vantagens.length === 0 ? (
           <p className="vazio">Nenhuma vantagem cadastrada.</p>
         ) : (
@@ -197,22 +169,26 @@ export default function Vantagens() {
             <table>
               <thead>
                 <tr>
-                  <th>Nome</th>
-                  <th>Empresa</th>
-                  <th className="numero">Custo</th>
-                  <th>Descrição</th>
                   <th>Foto</th>
+                  <th>Nome</th>
+                  <th>Descrição</th>
+                  <th className="numero">Custo</th>
                   <th />
                 </tr>
               </thead>
               <tbody>
                 {vantagens.map((vantagem) => (
                   <tr key={vantagem.id}>
+                    <td>
+                      {vantagem.foto ? (
+                        <img className="miniatura" src={urlDaFoto(vantagem.foto)} alt="" />
+                      ) : (
+                        <span className="miniatura sem-foto">—</span>
+                      )}
+                    </td>
                     <td>{vantagem.nome}</td>
-                    <td>{vantagem.empresaNome || "—"}</td>
+                    <td className="texto-longo">{vantagem.descricao}</td>
                     <td className="numero">{vantagem.custo}</td>
-                    <td>{vantagem.descricao}</td>
-                    <td><img src={vantagem.fotoUrl} alt="foto vantagem" /></td>
                     <td className="linha-acoes">
                       <button type="button" className="secundario" onClick={() => editar(vantagem)}>
                         Editar

@@ -252,9 +252,24 @@ th {
   margin-left: 6px;
 }
 
-img {
-  width: 50px;
-  height: 50px;
+.miniatura {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border: 1px solid var(--borda);
+  border-radius: 6px;
+}
+
+.sem-foto {
+  color: var(--texto-suave);
+  background: var(--fundo);
+}
+
+td.texto-longo {
+  min-width: 220px;
+  white-space: normal;
 }
 
 .login {
