@@ -1,11 +1,6 @@
 """Regras de negócio das transações: envio de moedas e extrato."""
 from app.models.transacao import EnvioMoeda
-from app.repositories import (
-    AlunoRepository,
-    ErroIntegridade,
-    ProfessorRepository,
-    TransacaoRepository,
-)
+from app.repositories import AlunoRepository, ErroIntegridade, TransacaoRepository
 from app.services.erros import Conflito, DadosInvalidos, NaoEncontrado, exigir_json
 from app.services.notificacao_service import NotificacaoService
 
@@ -13,20 +8,16 @@ TAMANHO_MAXIMO_MENSAGEM = 500
 
 
 class TransacaoService:
-    def __init__(self, transacoes=None, professores=None, alunos=None, notificacoes=None):
+    def __init__(self, transacoes=None, alunos=None, notificacoes=None):
         self.transacoes = transacoes or TransacaoRepository()
-        self.professores = professores or ProfessorRepository()
         self.alunos = alunos or AlunoRepository()
         self.notificacoes = notificacoes or NotificacaoService()
 
-    def listar_todas(self):
-        return self.transacoes.listar_todas()
-
-    def enviar_moedas(self, dados):
+    def enviar_moedas(self, professor, dados):
+        """``professor`` é o usuário logado; os dados trazem aluno, valor e motivo."""
         dados = exigir_json(dados)
         mensagem = self._validar_envio(dados)
 
-        professor = self._buscar_professor(dados["professorId"])
         aluno = self._buscar_aluno(dados["alunoId"])
         valor = dados["valor"]
 
@@ -55,26 +46,18 @@ class TransacaoService:
         self.notificacoes.notificar_envio_moedas(envio)
         return envio
 
-    def extrato_professor(self, professor_id):
-        professor = self._buscar_professor(professor_id)
-        return {
-            "saldo": professor.saldo,
-            "transacoes": self.transacoes.listar_por_professor(professor_id),
-        }
-
-    def extrato_aluno(self, aluno_id):
-        aluno = self._buscar_aluno(aluno_id)
-        return {
-            "saldo": aluno.saldo,
-            "transacoes": self.transacoes.listar_por_aluno(aluno_id),
-        }
+    def extrato(self, usuario):
+        """Extrato do usuário logado: envios do professor ou movimentações do aluno."""
+        if usuario.tipo == "professor":
+            transacoes = self.transacoes.listar_por_professor(usuario.id)
+        else:
+            transacoes = self.transacoes.listar_por_aluno(usuario.id)
+        return {"saldo": usuario.saldo, "transacoes": transacoes}
 
     def _validar_envio(self, dados):
         """Valida o corpo da requisição e devolve o motivo já sem espaços."""
         campos = {}
 
-        if not _inteiro_positivo(dados.get("professorId")):
-            campos["professorId"] = "Selecione o professor"
         if not _inteiro_positivo(dados.get("alunoId")):
             campos["alunoId"] = "Selecione o aluno"
         if not _inteiro_positivo(dados.get("valor")):
@@ -90,12 +73,6 @@ class TransacaoService:
         if campos:
             raise DadosInvalidos("Dados inválidos", campos)
         return mensagem
-
-    def _buscar_professor(self, professor_id):
-        professor = self.professores.buscar_por_id(professor_id)
-        if professor is None:
-            raise NaoEncontrado("Professor não encontrado")
-        return professor
 
     def _buscar_aluno(self, aluno_id):
         aluno = self.alunos.buscar_por_id(aluno_id)

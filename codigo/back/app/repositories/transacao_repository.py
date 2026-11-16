@@ -14,9 +14,6 @@ class TransacaoRepository(BaseRepository):
         self._confirmar()
         return transacao
 
-    def listar_todas(self):
-        return self._mais_recentes(Transacao.query).all()
-
     def listar_por_professor(self, professor_id):
         """Extrato do professor: os envios que ele realizou."""
         consulta = EnvioMoeda.query.filter_by(professor_id=professor_id)
