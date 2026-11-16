@@ -22,3 +22,15 @@ def client():
 
     with app.app_context():
         db.drop_all()
+
+
+@pytest.fixture
+def entrar(client):
+    """Faz login e devolve o header de autorização para as rotas protegidas."""
+
+    def _entrar(email, senha="senha123"):
+        resp = client.post("/api/auth/login", json={"email": email, "senha": senha})
+        assert resp.status_code == 200, resp.get_json()
+        return {"Authorization": f"Bearer {resp.get_json()['token']}"}
+
+    return _entrar
