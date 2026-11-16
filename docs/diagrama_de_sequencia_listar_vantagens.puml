@@ -1,0 +1,72 @@
+@startuml listar-vantagens
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+hide footbox
+
+title Diagrama de Sequência - Listar vantagens
+
+actor "Aluno" as aluno
+participant "CatalogoVantagens.jsx" as tela
+participant "api.js\n(vantagemApi, authApi)" as api
+participant "autenticacao.py\n(exige_perfil)" as auth
+participant "VantagemController" as controller
+participant "VantagemService" as service
+participant "VantagemRepository" as vantagens
+database "SQLite" as banco
+
+note over aluno, tela
+  O aluno já fez login: o token da
+  sessão vai no header Authorization.
+end note
+
+aluno -> tela : abre a aba "Vantagens"
+activate tela
+tela -> api : vantagemApi.catalogo()
+activate api
+api -> auth : GET /api/vantagens\n(Authorization: Bearer token)
+activate auth
+auth -> banco : SELECT do usuário do token
+activate banco
+banco --> auth : usuário ou vazio
+deactivate banco
+
+alt token válido e perfil = aluno
+  auth -> controller : listar()
+  activate controller
+  controller -> service : listar_todas()
+  activate service
+  service -> vantagens : listar_todas()
+  activate vantagens
+  vantagens -> banco : SELECT em vantagens e empresas_parceiras\n(ordenado por custo e nome)
+  activate banco
+  banco --> vantagens : registros
+  deactivate banco
+  vantagens --> service : vantagens
+  deactivate vantagens
+  service --> controller : vantagens
+  deactivate service
+  controller --> auth : 200 OK (lista de vantagens)
+  deactivate controller
+  auth --> api : 200 OK
+  api --> tela : vantagens
+  tela -> api : authApi.eu()
+  api --> tela : perfil com o saldo atual
+  tela --> aluno : exibe os cartões com foto, empresa,\ndescrição, custo e se o saldo é suficiente
+
+else token ausente, inválido ou expirado
+  auth --> api : 401 Unauthorized (erro)
+  api -> api : encerra a sessão
+  api --> tela : ErroApi e evento "sessao-expirada"
+  tela --> aluno : volta para a tela de login
+
+else perfil diferente de aluno
+  auth --> api : 403 Forbidden (erro)
+  deactivate auth
+  api --> tela : ErroApi
+  deactivate api
+  tela --> aluno : exibe a mensagem de acesso negado
+end
+
+deactivate tela
+
+@enduml
