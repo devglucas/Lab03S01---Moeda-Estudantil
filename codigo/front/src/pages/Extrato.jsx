@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 
-import { alunosApi, extratoApi, professorApi } from "../api.js";
+import { extratoApi } from "../api.js";
 import Aviso from "../components/Aviso.jsx";
-import Campo from "../components/Campo.jsx";
 
 // Como cada transação aparece no extrato de cada perfil. O sinal do valor
 // depende do perfil: o mesmo envio é saída para o professor e entrada para o aluno.
@@ -16,92 +15,26 @@ function descrever(transacao, perfil) {
   return { descricao: `Recebido de ${transacao.professorNome}`, detalhe: transacao.mensagem, sinal: "+" };
 }
 
-export default function Extrato() {
-  const [professores, setProfessores] = useState([]);
-  const [alunos, setAlunos] = useState([]);
-  const [perfil, setPerfil] = useState("aluno");
-  const [usuarioId, setUsuarioId] = useState("");
+export default function Extrato({ usuario }) {
   const [extrato, setExtrato] = useState(null);
   const [aviso, setAviso] = useState(null);
 
   useEffect(() => {
-    async function carregarUsuarios() {
-      try {
-        const [listaProfessores, listaAlunos] = await Promise.all([
-          professorApi.listar(),
-          alunosApi.listar(),
-        ]);
-        setProfessores(listaProfessores);
-        setAlunos(listaAlunos);
-      } catch (erro) {
-        setAviso({ tipo: "erro", texto: erro.message });
-      }
-    }
-    carregarUsuarios();
+    extratoApi
+      .meu()
+      .then(setExtrato)
+      .catch((erro) => setAviso({ tipo: "erro", texto: erro.message }));
   }, []);
 
-  useEffect(() => {
-    if (!usuarioId) return undefined;
-
-    // Evita que uma resposta atrasada sobrescreva a do usuário escolhido depois.
-    let ignorar = false;
-    extratoApi[perfil](usuarioId)
-      .then((dados) => {
-        if (!ignorar) setExtrato(dados);
-      })
-      .catch((erro) => {
-        if (!ignorar) setAviso({ tipo: "erro", texto: erro.message });
-      });
-    return () => {
-      ignorar = true;
-    };
-  }, [perfil, usuarioId]);
-
-  function escolherPerfil(evento) {
-    setPerfil(evento.target.value);
-    setUsuarioId("");
-    setExtrato(null);
-    setAviso(null);
-  }
-
-  function escolherUsuario(evento) {
-    setUsuarioId(evento.target.value);
-    setExtrato(null);
-    setAviso(null);
-  }
-
-  const usuarios = perfil === "professor" ? professores : alunos;
+  const perfil = usuario.tipo;
 
   return (
     <section className="pagina">
-      <div className="cartao">
-        <h2>Consultar extrato</h2>
-        <Aviso aviso={aviso} />
-
-        <div className="grade">
-          <Campo rotulo="Perfil">
-            <select name="perfil" value={perfil} onChange={escolherPerfil}>
-              <option value="aluno">Aluno</option>
-              <option value="professor">Professor</option>
-            </select>
-          </Campo>
-
-          <Campo rotulo={perfil === "professor" ? "Professor" : "Aluno"}>
-            <select name="usuarioId" value={usuarioId} onChange={escolherUsuario}>
-              <option value="">Selecione</option>
-              {usuarios.map((usuario) => (
-                <option key={usuario.id} value={usuario.id}>
-                  {usuario.nome}
-                </option>
-              ))}
-            </select>
-          </Campo>
-        </div>
-      </div>
+      <Aviso aviso={aviso} />
 
       {extrato && (
         <div className="cartao">
-          <h2>Extrato</h2>
+          <h2>Meu extrato</h2>
           <p className="saldo">Saldo atual: {extrato.saldo} moeda(s)</p>
 
           {extrato.transacoes.length === 0 ? (
