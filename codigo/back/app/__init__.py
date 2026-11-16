@@ -33,6 +33,12 @@ def create_app():
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config["JSON_AS_ASCII"] = False
 
+    # Pasta das fotos das vantagens; os testes usam uma pasta temporária.
+    app.config["UPLOAD_FOLDER"] = os.environ.get("UPLOAD_FOLDER") or os.path.join(
+        basedir, "..", "uploads"
+    )
+    app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024  # limite de 5 MB por requisição
+
     # Chave que assina os tokens de login. Em produção defina SECRET_KEY no .env.
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY") or "dev-moeda-estudantil-troque-esta-chave"
 
@@ -72,23 +78,20 @@ def create_app():
     app.register_blueprint(transacao_bp)
     app.register_blueprint(vantagem_bp)
 
-
-    @app.route("/uploads/<nome>")
+    # Fotos das vantagens: ficam fora do git e são servidas em /uploads/<nome>.
+    @app.get("/uploads/<nome>")
     def obter_foto(nome):
-        pasta = os.path.abspath(
-            os.path.join(
-                os.path.dirname(__file__),
-                "..",
-                "uploads"
-            )
-        )
+        return send_from_directory(app.config["UPLOAD_FOLDER"], nome)
 
-        return send_from_directory(pasta, nome)
-    
     # Os services lançam ErroDeNegocio; aqui ele vira {"erro", "campos"} + status.
     @app.errorhandler(ErroDeNegocio)
     def erro_de_negocio(erro):
         return jsonify(erro.to_dict()), erro.status
+
+    @app.errorhandler(413)
+    def arquivo_grande_demais(_erro):
+        corpo = {"erro": "Arquivo grande demais.", "campos": {"foto": "Envie uma imagem de até 5 MB"}}
+        return jsonify(corpo), 413
 
     # Cria as tabelas que ainda não existem e preserva os dados já gravados.
     with app.app_context():

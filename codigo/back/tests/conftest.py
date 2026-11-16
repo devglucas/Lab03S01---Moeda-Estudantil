@@ -1,9 +1,12 @@
 import os
+import tempfile
 
 import pytest
 
 # Banco em memória para não apagar o moedas.db de desenvolvimento.
 os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+# Fotos das vantagens em uma pasta temporária, fora do repositório.
+os.environ["UPLOAD_FOLDER"] = tempfile.mkdtemp(prefix="moedas-uploads-")
 # Sem servidor de e-mail, mesmo que exista um .env local configurado.
 for variavel in ("MAIL_HOST", "MAIL_USER", "MAIL_PASSWORD"):
     os.environ[variavel] = ""
