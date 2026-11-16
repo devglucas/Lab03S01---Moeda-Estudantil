@@ -6,6 +6,9 @@ from app.repositories.base_repository import BaseRepository
 class UsuarioRepository(BaseRepository):
     model = Usuario
 
+    def buscar_por_login(self, login):
+        return Usuario.query.filter_by(login=login).first()
+
     def login_em_uso(self, login, exceto_id=None):
         """O login (e-mail) é único entre alunos, professores e empresas."""
         return self._existe(Usuario.login, login, exceto_id)

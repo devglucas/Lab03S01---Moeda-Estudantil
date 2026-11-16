@@ -1,7 +1,8 @@
 """Fábrica da aplicação Flask (arquitetura MVC em camadas).
 
 Monta a app, inicializa o banco (SQLite), libera CORS para o front em dev,
-registra os blueprints (alunos, professores, empresas, instituições e transações), converte os erros
+registra os blueprints (autenticação, alunos, professores, empresas, instituições,
+transações e vantagens), converte os erros
 dos services em respostas JSON e semeia as instituições de ensino
 pré-cadastradas quando a base ainda está vazia.
 
@@ -32,6 +33,9 @@ def create_app():
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config["JSON_AS_ASCII"] = False
 
+    # Chave que assina os tokens de login. Em produção defina SECRET_KEY no .env.
+    app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY") or "dev-moeda-estudantil-troque-esta-chave"
+
     # Servidor de e-mail. As credenciais vêm do ambiente (.env fora do git);
     # sem MAIL_HOST os e-mails são apenas registrados no log.
     app.config["MAIL_HOST"] = os.environ.get("MAIL_HOST", "")
@@ -53,12 +57,14 @@ def create_app():
     )
 
     from app.controllers.aluno_controller import aluno_bp
+    from app.controllers.auth_controller import auth_bp
     from app.controllers.empresa_controller import empresa_bp
     from app.controllers.instituicao_controller import instituicao_bp
     from app.controllers.professor_controller import professor_bp
     from app.controllers.transacao_controller import transacao_bp
     from app.controllers.vantagem_controller import vantagem_bp
 
+    app.register_blueprint(auth_bp)
     app.register_blueprint(aluno_bp)
     app.register_blueprint(empresa_bp)
     app.register_blueprint(instituicao_bp)
