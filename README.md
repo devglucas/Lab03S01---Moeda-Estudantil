@@ -118,7 +118,7 @@ Tela React  ->  fetch (src/api.js)  ->  Controller  ->  Service  ->  Repository 
 | Sequência: enviar moedas | [`docs/diagrama_de_sequencia_envio_de_moedas.png`](docs/diagrama_de_sequencia_envio_de_moedas.png) |
 | Sequência: consultar extrato | [`docs/diagrama_de_sequencia_consultar_extrato.png`](docs/diagrama_de_sequencia_consultar_extrato.png) |
 | Sequência: cadastrar vantagem | [`docs/diagrama_de_sequencia_cadastro_de_vantagem.png`](docs/diagrama_de_sequencia_cadastro_de_vantagem.png) |
-| Sequência: listar vantagens | [`docs/diagrama_de_sequencia_listar_vantagens.puml`](docs/diagrama_de_sequencia_listar_vantagens.puml) |
+| Sequência: listar vantagens | [`docs/diagrama_de_sequencia_listar_vantagens.png`](docs/diagrama_de_sequencia_listar_vantagens.png) |
 | Modelo Entidade-Relacionamento | [`docs/modelo-er.png`](docs/modelo-er.png) (script SQL comentado em [`docs/modelo-er.sql`](docs/modelo-er.sql)) |
 
 As histórias de usuário estão em [`docs/historias-de-usuario.md`](docs/historias-de-usuario.md).
