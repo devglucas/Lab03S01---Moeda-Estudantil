@@ -1,0 +1,24 @@
+
+@startuml
+title Diagrama de Sequência - Cadastrar Vantagem
+
+actor Professor
+participant Sistema
+database "Banco de Dados" as BD
+
+Professor -> Sistema: Acessa "Cadastrar Vantagem"
+
+Sistema -> BD: Buscar empresas parceiras cadastradas
+BD --> Sistema: Retorna lista de empresas
+Sistema --> Professor: Exibe formulário e lista de empresas
+
+Professor -> Sistema: Informa nome/descrição da vantagem
+Professor -> Sistema: Informa preço da vantagem
+Professor -> Sistema: Seleciona empresa parceira
+Professor -> Sistema: Clica em "Cadastrar"
+
+Sistema -> Sistema: Validar dados informados
+Sistema--> BD: Cadastra a vantagem na instituição do professor
+
+
+@enduml

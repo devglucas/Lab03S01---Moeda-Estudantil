@@ -1,0 +1,28 @@
+
+@startuml
+title Professor envia moedas ao aluno
+
+actor Professor
+participant Sistema
+database "Banco de Dados" as BD
+actor Aluno
+
+Professor -> Sistema: Acessar envio de moedas
+Sistema --> Professor: Exibir formulário
+
+Professor -> Sistema: Selecionar aluno
+Professor -> Sistema: Informar quantidade de moedas
+Professor -> Sistema: Informar motivo
+Professor -> Sistema: Confirmar envio
+
+Sistema -> BD: Registrar envio de moedas
+BD --> Sistema: Confirmar registro
+
+Sistema -> BD: Atualizar saldo do aluno
+Sistema -> BD: Atualizar saldo do Professor
+
+Sistema --> Professor: Envio realizado com sucesso
+Sistema -> Aluno: Enviar recebimento de moedas por email
+Sistema -> Professor: Enviar recebimento de moedas por email
+
+@enduml
