@@ -5,101 +5,77 @@ hide footbox
 
 title Diagrama de Sequência - Consultar extrato
 
-actor "Usuário" as usuario
+actor "Aluno ou Professor" as usuario
 participant "Extrato.jsx" as tela
 participant "api.js\n(extratoApi)" as api
+participant "autenticacao.py\n(exige_perfil)" as auth
 participant "TransacaoController" as controller
 participant "TransacaoService" as service
-participant "AlunoRepository" as alunos
-participant "ProfessorRepository" as professores
 participant "TransacaoRepository" as transacoes
 database "SQLite" as banco
 
 note over usuario, tela
-  A tela já carregou as listas de alunos e
-  professores usadas nos campos de seleção.
+  O usuário já fez login: o token da
+  sessão vai no header Authorization.
 end note
 
-usuario -> tela : escolhe o perfil e o usuário
+usuario -> tela : abre a aba "Extrato"
 activate tela
+tela -> api : extratoApi.meu()
+activate api
+api -> auth : GET /api/transacoes/extrato\n(Authorization: Bearer token)
+activate auth
+auth -> banco : SELECT do usuário do token
+activate banco
+banco --> auth : usuário ou vazio
+deactivate banco
 
-alt perfil = aluno
-  tela -> api : extratoApi.aluno(id)
-  activate api
-  api -> controller : GET /api/transacoes/extrato/aluno/{id}
+alt token válido e perfil = aluno ou professor
+  auth -> controller : extrato()
   activate controller
-  controller -> service : extrato_aluno(id)
+  controller -> service : extrato(usuário logado)
   activate service
-  service -> alunos : buscar_por_id(id)
-  activate alunos
-  alunos -> banco : SELECT em alunos
-  activate banco
-  banco --> alunos : registro ou vazio
-  deactivate banco
-  alunos --> service : aluno ou None
-  deactivate alunos
 
-  alt aluno encontrado
-    service -> transacoes : listar_por_aluno(id)
-    activate transacoes
-    transacoes -> banco : SELECT em transacoes,\nenvios_moeda e trocas_vantagem\n(mais recentes primeiro)
-    activate banco
-    banco --> transacoes : registros
-    deactivate banco
-    transacoes --> service : envios e trocas do aluno
-    deactivate transacoes
-    service --> controller : saldo e transações
-    controller --> api : 200 OK (saldo, transacoes)
-    api --> tela : dados do extrato
-    tela --> usuario : exibe o saldo e as transações
-  else aluno não encontrado
-    service --> controller : NaoEncontrado("Aluno não encontrado")
-    deactivate service
-    controller --> api : 404 Not Found (erro)
-    deactivate controller
-    api --> tela : ErroApi
-    deactivate api
-    tela --> usuario : exibe a mensagem de erro
-  end
-
-else perfil = professor
-  tela -> api : extratoApi.professor(id)
-  activate api
-  api -> controller : GET /api/transacoes/extrato/professor/{id}
-  activate controller
-  controller -> service : extrato_professor(id)
-  activate service
-  service -> professores : buscar_por_id(id)
-  activate professores
-  professores -> banco : SELECT em professores
-  activate banco
-  banco --> professores : registro ou vazio
-  deactivate banco
-  professores --> service : professor ou None
-  deactivate professores
-
-  alt professor encontrado
+  alt usuário é professor
     service -> transacoes : listar_por_professor(id)
     activate transacoes
     transacoes -> banco : SELECT em transacoes e envios_moeda\n(mais recentes primeiro)
     activate banco
     banco --> transacoes : registros
     deactivate banco
-    transacoes --> service : envios do professor
+    transacoes --> service : envios realizados
     deactivate transacoes
-    service --> controller : saldo e transações
-    controller --> api : 200 OK (saldo, transacoes)
-    api --> tela : dados do extrato
-    tela --> usuario : exibe o saldo e as transações
-  else professor não encontrado
-    service --> controller : NaoEncontrado("Professor não encontrado")
-    deactivate service
-    controller --> api : 404 Not Found (erro)
-    deactivate controller
-    api --> tela : ErroApi
-    deactivate api
-    tela --> usuario : exibe a mensagem de erro
+  else usuário é aluno
+    service -> transacoes : listar_por_aluno(id)
+    activate transacoes
+    transacoes -> banco : SELECT em transacoes, envios_moeda\ne trocas_vantagem (mais recentes primeiro)
+    activate banco
+    banco --> transacoes : registros
+    deactivate banco
+    transacoes --> service : moedas recebidas e trocas
+    deactivate transacoes
   end
+
+  service --> controller : saldo e transações
+  deactivate service
+  controller --> auth : 200 OK (saldo, transacoes)
+  deactivate controller
+  auth --> api : 200 OK
+  api --> tela : dados do extrato
+  tela --> usuario : exibe o saldo e as transações\n(+ entradas, - saídas)
+
+else token ausente, inválido ou expirado
+  auth --> api : 401 Unauthorized (erro)
+  api -> api : encerra a sessão
+  api --> tela : ErroApi e evento "sessao-expirada"
+  tela --> usuario : volta para a tela de login
+
+else perfil = empresa
+  auth --> api : 403 Forbidden (erro)
+  deactivate auth
+  api --> tela : ErroApi
+  deactivate api
+  tela --> usuario : exibe a mensagem de acesso negado
 end
 
 deactivate tela
