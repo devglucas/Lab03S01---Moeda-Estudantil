@@ -83,6 +83,7 @@ entity "trocas_vantagem" as trocas #FFFFFF ##333333 {
   * id : INTEGER <<PK, FK>>
   --
   * codigo : VARCHAR(20) <<UNIQUE>>
+  * vantagem_id : INTEGER <<FK>>
 }
 
 ' Herança (joined table): cada perfil compartilha o id de usuarios
@@ -102,6 +103,6 @@ transacoes ||--o| envios : "é um"
 transacoes ||--o| trocas : "é um"
 
 professores ||--o{ envios : "envia"
-vantagens ||..o{ trocas : "resgatada em"
+vantagens ||--o{ trocas : "resgatada em"
 
 @enduml
