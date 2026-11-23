@@ -1,0 +1,14 @@
+Olá, {{ troca.aluno.nome }}!
+
+Sua troca foi realizada. Apresente o código abaixo à empresa parceira para
+receber o benefício.
+
+Código do cupom: {{ troca.codigo }}
+
+Vantagem: {{ troca.vantagem.nome }}
+Empresa: {{ troca.vantagem.empresa.nome }}
+Valor: {{ troca.valor }} moeda(s)
+
+Seu saldo atual é de {{ troca.aluno.saldo }} moeda(s).
+
+Sistema de Moeda Estudantil

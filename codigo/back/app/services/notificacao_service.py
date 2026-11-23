@@ -26,20 +26,35 @@ class NotificacaoService:
             envio.professor.email,
             "Envio de moedas confirmado",
             "email/envio_confirmado_professor.txt",
-            envio,
+            envio=envio,
         )
         self._enviar(
             envio.aluno.email,
             "Você recebeu moedas!",
             "email/moedas_recebidas_aluno.txt",
-            envio,
+            envio=envio,
         )
 
-    def _enviar(self, destinatario, assunto, template, envio):
+    def notificar_troca(self, troca):
+        """O cupom vai para o aluno e a conferência para a empresa, com o mesmo código."""
+        self._enviar(
+            troca.aluno.email,
+            f"Seu cupom: {troca.vantagem.nome}",
+            "email/cupom_troca_aluno.txt",
+            troca=troca,
+        )
+        self._enviar(
+            troca.vantagem.empresa.email,
+            "Nova troca de vantagem",
+            "email/troca_confirmada_empresa.txt",
+            troca=troca,
+        )
+
+    def _enviar(self, destinatario, assunto, template, **contexto):
         # O envio já foi gravado: um problema na notificação não pode virar erro.
         # O corpo é montado aqui porque os models só valem dentro da requisição.
         try:
-            corpo = render_template(template, envio=envio)
+            corpo = render_template(template, **contexto)
         except Exception:
             log.exception("Falha ao montar o e-mail %s", template)
             return
