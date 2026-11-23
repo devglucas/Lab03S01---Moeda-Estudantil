@@ -278,6 +278,22 @@ python run.py
 
 A API sobe em `http://localhost:5000`. Na primeira execução o banco `moedas.db` é criado e as instituições de ensino são cadastradas.
 
+Para ter dados prontos para testar ou apresentar, rode uma vez, com o back-end parado ou rodando:
+
+```bash
+python seed_demo.py
+```
+
+O comando cria duas empresas com vantagens, dois professores, três alunos, alguns envios de moedas e uma troca, sem enviar e-mails. Todos os usuários usam a senha `senha123`:
+
+| Perfil | E-mails |
+| :--- | :--- |
+| Empresa | `livraria@demo.com`, `cantina@demo.com` |
+| Professor | `carla@demo.com` (PUC Minas), `rui@demo.com` (UFMG) |
+| Aluno | `ana@demo.com`, `bruno@demo.com` (PUC Minas), `clara@demo.com` (UFMG) |
+
+Se os dados já existirem, o comando não faz nada; para recriá-los, apague o `moedas.db`.
+
 **Terminal 2: Front-end (React, Vite)**
 
 ```bash
@@ -309,6 +325,7 @@ Acesse `http://localhost:5173` no navegador.
 └── codigo/
     ├── back/                      # 🖥️ API Flask
     │   ├── run.py                 # 🚀 Ponto de entrada do back-end.
+    │   ├── seed_demo.py           # 🧪 Dados de demonstração (python seed_demo.py).
     │   ├── requirements.txt       # 📦 Dependências Python.
     │   ├── app/
     │   │   ├── __init__.py        # ⚙️ Criação da aplicação, banco e CORS.
