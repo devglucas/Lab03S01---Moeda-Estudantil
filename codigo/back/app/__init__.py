@@ -2,7 +2,7 @@
 
 Monta a app, inicializa o banco (SQLite), libera CORS para o front em dev,
 registra os blueprints (autenticação, alunos, professores, empresas, instituições,
-transações e vantagens), converte os erros
+transações, vantagens e trocas), converte os erros
 dos services em respostas JSON e semeia as instituições de ensino
 pré-cadastradas quando a base ainda está vazia.
 
@@ -68,6 +68,7 @@ def create_app():
     from app.controllers.instituicao_controller import instituicao_bp
     from app.controllers.professor_controller import professor_bp
     from app.controllers.transacao_controller import transacao_bp
+    from app.controllers.troca_controller import troca_bp
     from app.controllers.vantagem_controller import vantagem_bp
 
     app.register_blueprint(auth_bp)
@@ -76,6 +77,7 @@ def create_app():
     app.register_blueprint(instituicao_bp)
     app.register_blueprint(professor_bp)
     app.register_blueprint(transacao_bp)
+    app.register_blueprint(troca_bp)
     app.register_blueprint(vantagem_bp)
 
     # Fotos das vantagens: ficam fora do git e são servidas em /uploads/<nome>.
