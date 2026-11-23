@@ -1,0 +1,12 @@
+Olá, {{ troca.vantagem.empresa.nome }}!
+
+Um aluno trocou moedas por uma das suas vantagens. Confira o código do cupom
+quando ele vier retirar o benefício.
+
+Código do cupom: {{ troca.codigo }}
+
+Aluno: {{ troca.aluno.nome }}
+Vantagem: {{ troca.vantagem.nome }}
+Valor: {{ troca.valor }} moeda(s)
+
+Sistema de Moeda Estudantil

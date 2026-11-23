@@ -9,6 +9,8 @@ GET /api/vantagens  (catalogo; token de aluno)
 GET /api/vantagens/minhas  (token de empresa)
 POST/PUT /api/vantagens  (token de empresa; multipart/form-data: nome, descricao, custo e foto opcional)
 DELETE /api/vantagens/{id}  (token de empresa)
+POST /api/trocas  (token de aluno; troca moedas por vantagem)
+GET /api/trocas  (token de empresa; trocas das suas vantagens)
 
 {
   "nome": "João",
@@ -65,4 +67,8 @@ DELETE /api/vantagens/{id}  (token de empresa)
   "alunoId": 2,
   "valor": 100,
   "mensagem": "Otima participacao em aula"
+}
+
+{
+  "vantagemId": 1
 }

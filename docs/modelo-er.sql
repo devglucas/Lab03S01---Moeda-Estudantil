@@ -126,10 +126,13 @@ CREATE TABLE envios_moeda (
 -- ---------------------------------------------------------------------
 -- [IMPLEMENTADA] Troca de moedas por uma vantagem. codigo é o cupom
 -- enviado por e-mail ao aluno e à empresa para conferência na troca.
--- A coluna vantagem_id entra junto com a troca de vantagens [PLANEJADA].
+-- O valor pago fica em transacoes.valor, então a troca guarda o custo da
+-- época mesmo que a empresa mude o preço da vantagem depois.
 -- ---------------------------------------------------------------------
 CREATE TABLE trocas_vantagem (
-    id      INTEGER     NOT NULL PRIMARY KEY,
-    codigo  VARCHAR(20) NOT NULL UNIQUE,
-    FOREIGN KEY (id) REFERENCES transacoes (id)
+    id           INTEGER     NOT NULL PRIMARY KEY,
+    codigo       VARCHAR(20) NOT NULL UNIQUE,
+    vantagem_id  INTEGER     NOT NULL,
+    FOREIGN KEY (id)          REFERENCES transacoes (id),
+    FOREIGN KEY (vantagem_id) REFERENCES vantagens (id)
 );

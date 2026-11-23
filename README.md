@@ -55,14 +55,14 @@ As instituições de ensino são pré-cadastradas. O desenvolvimento acontece em
 - 📄 **Extrato:** o usuário logado consulta o próprio saldo e as próprias transações: o professor vê os envios realizados, e o aluno vê as moedas recebidas e as trocas.
 - 🎁 **Cadastro de vantagens:** a empresa logada cadastra, edita e remove as próprias vantagens, com nome, descrição, custo em moedas e foto opcional (PNG, JPG ou WEBP, até 5 MB).
 - 🛍️ **Listagem de vantagens:** o aluno logado vê o catálogo de todas as empresas, com foto, descrição e custo, e se o seu saldo é suficiente para cada uma.
-- 📨 **Notificações por e-mail:** a cada envio, o professor recebe uma confirmação e o aluno recebe um aviso, cada um com o seu template.
+- 🔄 **Troca de vantagens:** o aluno logado troca moedas por uma vantagem do catálogo, desde que tenha saldo suficiente. O sistema debita o saldo e gera um código de cupom único (formato `ABCD-2345`), mostrado na tela e enviado por e-mail.
+- 🧾 **Conferência das trocas:** a empresa logada vê as trocas das próprias vantagens e busca pelo código que o aluno apresenta ao retirar o benefício.
+- 📨 **Notificações por e-mail:** a cada envio, o professor recebe uma confirmação e o aluno recebe um aviso. A cada troca, o aluno recebe o cupom e a empresa recebe a conferência, as duas com o mesmo código. Cada mensagem tem o seu template.
 - 🔐 **Senhas protegidas:** as senhas são armazenadas apenas como hash.
 
 **Planejadas (próximas sprints)**
 
-- 🔄 Troca de moedas por vantagens, com geração de cupom.
 - 🗓️ Crédito de 1.000 moedas a cada semestre para os professores.
-- 📨 Envio do cupom de troca por e-mail.
 
 ---
 
@@ -153,11 +153,15 @@ O grupo escolheu usar um **ORM (Object-Relational Mapping)**, o **SQLAlchemy**, 
 
 O débito do professor, o crédito do aluno e o registro do `EnvioMoeda` são gravados no mesmo `commit`. Se a gravação falhar, é feito `rollback` e nenhuma das alterações é persistida. Os e-mails só são enviados depois do `commit`, em segundo plano, para a tela não ficar esperando o servidor de e-mail. Uma falha no envio não desfaz a transação e fica registrada apenas no log do back-end.
 
+**Atomicidade da troca de vantagens**
+
+A troca segue a mesma regra: o débito do aluno e o registro da `TrocaVantagem` vão no mesmo `commit`, e os e-mails do cupom e da conferência só saem depois dele. O valor pago fica guardado na troca, então uma mudança posterior no preço da vantagem não altera o histórico. Uma vantagem que já foi trocada não pode ser removida.
+
 **Banco de dados**
 
 O banco é o **SQLite**, gravado no arquivo `codigo/back/moedas.db`. Ele não precisa de instalação nem de servidor, o que simplifica a configuração do ambiente de cada integrante. O arquivo não é versionado e é criado automaticamente na primeira execução. Como o acesso passa pelo ORM, trocar para outro banco (por exemplo, PostgreSQL) exige apenas mudar a variável `DATABASE_URL`.
 
-O projeto não usa migrações: `db.create_all()` só cria as tabelas que ainda não existem. Depois de uma mudança em uma tabela já existente, apague o `moedas.db` local para que ele seja recriado.
+O projeto não usa migrações: `db.create_all()` só cria as tabelas que ainda não existem. Depois de uma mudança em uma tabela já existente, apague o `moedas.db` local para que ele seja recriado. Isso é necessário ao atualizar para a versão com a troca de vantagens, que acrescentou a coluna `vantagem_id` em `trocas_vantagem`.
 
 As fotos das vantagens não ficam no banco: a tabela `vantagens` guarda só o nome do arquivo, salvo com um nome aleatório na pasta `codigo/back/uploads/` (fora do git) e servido em `http://localhost:5000/uploads/<nome>`.
 
@@ -199,7 +203,9 @@ URL base: `http://localhost:5000/api`
 | `GET` | `/vantagens/minhas` 🔒 empresa | Vantagens da empresa logada |
 | `POST` | `/vantagens` 🔒 empresa | Cadastra uma vantagem (`multipart/form-data`, foto opcional) |
 | `PUT` | `/vantagens/{id}` 🔒 empresa | Atualiza uma vantagem da empresa logada (sem foto nova, mantém a atual) |
-| `DELETE` | `/vantagens/{id}` 🔒 empresa | Remove uma vantagem da empresa logada |
+| `DELETE` | `/vantagens/{id}` 🔒 empresa | Remove uma vantagem da empresa logada que ainda não foi trocada |
+| `POST` | `/trocas` 🔒 aluno | Troca moedas pela vantagem `{"vantagemId": 1}` e devolve o código do cupom |
+| `GET` | `/trocas` 🔒 empresa | Trocas das vantagens da empresa logada, para conferir os cupons |
 
 As rotas marcadas com 🔒 exigem o header `Authorization: Bearer <token>`, obtido no login. Sem token, ou com um token vencido, a resposta é `401`; com um perfil sem acesso, é `403`.
 
@@ -272,6 +278,22 @@ python run.py
 
 A API sobe em `http://localhost:5000`. Na primeira execução o banco `moedas.db` é criado e as instituições de ensino são cadastradas.
 
+Para ter dados prontos para testar ou apresentar, rode uma vez, com o back-end parado ou rodando:
+
+```bash
+python seed_demo.py
+```
+
+O comando cria duas empresas com vantagens, dois professores, três alunos, alguns envios de moedas e uma troca, sem enviar e-mails. Todos os usuários usam a senha `senha123`:
+
+| Perfil | E-mails |
+| :--- | :--- |
+| Empresa | `livraria@demo.com`, `cantina@demo.com` |
+| Professor | `carla@demo.com` (PUC Minas), `rui@demo.com` (UFMG) |
+| Aluno | `ana@demo.com`, `bruno@demo.com` (PUC Minas), `clara@demo.com` (UFMG) |
+
+Se os dados já existirem, o comando não faz nada; para recriá-los, apague o `moedas.db`.
+
 **Terminal 2: Front-end (React, Vite)**
 
 ```bash
@@ -303,6 +325,7 @@ Acesse `http://localhost:5173` no navegador.
 └── codigo/
     ├── back/                      # 🖥️ API Flask
     │   ├── run.py                 # 🚀 Ponto de entrada do back-end.
+    │   ├── seed_demo.py           # 🧪 Dados de demonstração (python seed_demo.py).
     │   ├── requirements.txt       # 📦 Dependências Python.
     │   ├── app/
     │   │   ├── __init__.py        # ⚙️ Criação da aplicação, banco e CORS.
@@ -345,7 +368,7 @@ source venv/bin/activate
 python -m pytest
 ```
 
-Eles cobrem o login (token, senha errada, token vencido e perfis sem acesso), o CRUD completo de aluno, professor, empresa parceira e instituição de ensino, a validação de campos obrigatórios, CPF e CNPJ, e as regras de unicidade (e-mail único entre todos os perfis, CPF, CNPJ e nome da instituição). Também cobrem o envio de moedas (saldo insuficiente, atomicidade e validações), o extrato de professor e aluno, o cadastro, a edição e a exclusão de vantagens (validações, foto opcional, limite de tamanho e acesso só às vantagens da própria empresa), o catálogo do aluno e os e-mails (template de cada destinatário e falhas no envio), sem enviar mensagens de verdade. As fotos enviadas nos testes vão para uma pasta temporária. Os testes de `tests/test_services.py` exercitam a camada de serviço sem banco, usando repositórios falsos.
+Eles cobrem o login (token, senha errada, token vencido e perfis sem acesso), o CRUD completo de aluno, professor, empresa parceira e instituição de ensino, a validação de campos obrigatórios, CPF e CNPJ, e as regras de unicidade (e-mail único entre todos os perfis, CPF, CNPJ e nome da instituição). Também cobrem o envio de moedas (saldo insuficiente, atomicidade e validações), o extrato de professor e aluno, o cadastro, a edição e a exclusão de vantagens (validações, foto opcional, limite de tamanho e acesso só às vantagens da própria empresa), o catálogo do aluno, a troca de vantagens (saldo insuficiente, atomicidade, código único, conferência pela empresa e bloqueio da exclusão de vantagem trocada) e os e-mails (template de cada destinatário, o mesmo código no cupom e na conferência e falhas no envio), sem enviar mensagens de verdade. As fotos enviadas nos testes vão para uma pasta temporária. Os testes de `tests/test_services.py` exercitam a camada de serviço sem banco, usando repositórios falsos.
 
 ---
 

@@ -6,7 +6,7 @@ import uuid
 from flask import current_app
 
 from app.models.vantagem import Vantagem
-from app.repositories import ErroIntegridade, VantagemRepository
+from app.repositories import ErroIntegridade, TransacaoRepository, VantagemRepository
 from app.services.erros import Conflito, DadosInvalidos, NaoEncontrado
 from app.validacao import texto
 
@@ -16,8 +16,9 @@ TAMANHO_MAXIMO_DESCRICAO = 500
 
 
 class VantagemService:
-    def __init__(self, vantagens=None):
+    def __init__(self, vantagens=None, transacoes=None):
         self.vantagens = vantagens or VantagemRepository()
+        self.transacoes = transacoes or TransacaoRepository()
 
     def listar_todas(self):
         return self.vantagens.listar_todas()
@@ -50,6 +51,9 @@ class VantagemService:
 
     def remover(self, empresa, vantagem_id):
         vantagem = self._buscar_da_empresa(empresa, vantagem_id)
+        # As trocas já feitas apontam para a vantagem e fazem parte do extrato.
+        if self.transacoes.existe_troca_da_vantagem(vantagem.id):
+            raise Conflito("Esta vantagem já foi trocada por alunos e não pode ser removida.")
         foto = vantagem.foto
         try:
             self.vantagens.remover(vantagem)

@@ -78,6 +78,10 @@ export const vantagemApi = {
     requisicao(`/vantagens/${id}`, { method: "PUT", body: formulario }),
   remover: (id) => requisicao(`/vantagens/${id}`, { method: "DELETE" }),
 };
+export const trocasApi = {
+  trocar: (vantagemId) => enviarJson("/trocas", "POST", { vantagemId }),
+  daEmpresa: () => requisicao("/trocas"),
+};
 export const professorApi = recurso("/professores");
 export const alunosApi = recurso("/alunos");
 export const empresasApi = recurso("/empresas");

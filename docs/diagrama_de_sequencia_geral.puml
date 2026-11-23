@@ -1,0 +1,138 @@
+@startuml diagrama-sequencia-geral
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+hide footbox
+
+title Diagrama de Sequência Geral - Ciclo da Moeda Estudantil
+
+actor "Professor" as professor
+actor "Empresa Parceira" as empresa
+actor "Aluno" as aluno
+participant "Front-end\n(React)" as tela
+participant "Autenticação\n(exige_perfil)" as auth
+participant "Controllers" as controller
+participant "Services" as service
+participant "Repositories" as repository
+database "SQLite" as banco
+participant "Serviço de E-mail" as email
+
+== 1. Professor reconhece o aluno com moedas ==
+
+professor -> tela : escolhe o aluno, o valor e o motivo
+tela -> auth : POST /api/transacoes (token do professor)
+auth -> controller : professor logado
+controller -> service : enviar_moedas(professor, dados)
+service -> repository : buscar_por_id(aluno)
+repository -> banco : SELECT aluno
+banco --> repository : aluno
+repository --> service : aluno
+
+alt saldo suficiente e aluno da mesma instituição
+  service -> repository : registrar(envio, professor, aluno)
+  repository -> banco : INSERT envio e UPDATE dos saldos\n(um único commit)
+  banco --> repository : gravado
+  repository --> service : envio registrado
+  service -> email : notificar_envio_moedas(envio)
+  service --> controller : envio
+  controller --> tela : 201 Created
+  tela --> professor : exibe a confirmação e o novo saldo
+  email -> professor : confirmação do envio
+  email -> aluno : aviso de moedas recebidas
+else saldo insuficiente ou aluno de outra instituição
+  service --> controller : DadosInvalidos
+  controller --> tela : 400 Bad Request
+  tela --> professor : exibe o motivo da recusa
+end
+
+== 2. Empresa parceira oferece uma vantagem ==
+
+empresa -> tela : informa nome, descrição, custo e foto
+tela -> auth : POST /api/vantagens (token da empresa)
+auth -> controller : empresa logada
+controller -> service : criar(empresa, dados, foto)
+service -> service : valida os dados e grava a foto em uploads/
+service -> repository : salvar(vantagem)
+repository -> banco : INSERT vantagem
+banco --> repository : gravada
+repository --> service : vantagem
+service --> controller : vantagem
+controller --> tela : 201 Created
+tela --> empresa : exibe a vantagem em "Minhas vantagens"
+
+== 3. Aluno consulta o saldo e o extrato ==
+
+aluno -> tela : abre "Extrato"
+tela -> auth : GET /api/transacoes/extrato (token do aluno)
+auth -> controller : aluno logado
+controller -> service : extrato(aluno)
+service -> repository : listar_por_aluno(id)
+repository -> banco : SELECT envios e trocas do aluno
+banco --> repository : transações
+repository --> service : transações
+service --> controller : saldo e transações
+controller --> tela : 200 OK
+tela --> aluno : exibe o saldo, as moedas recebidas (+) e as trocas (-)
+
+== 4. Aluno consulta o catálogo de vantagens ==
+
+aluno -> tela : abre "Vantagens"
+tela -> auth : GET /api/vantagens (token do aluno)
+auth -> controller : aluno logado
+controller -> service : listar_todas()
+service -> repository : listar_todas()
+repository -> banco : SELECT vantagens e empresas\n(ordenado por custo)
+banco --> repository : vantagens
+repository --> service : vantagens
+service --> controller : vantagens
+controller --> tela : 200 OK
+tela -> auth : GET /api/auth/eu
+auth --> tela : perfil com o saldo atual
+tela --> aluno : exibe os cartões com "Trocar" ou "Faltam X moedas"
+
+== 5. Aluno troca moedas por uma vantagem ==
+
+aluno -> tela : clica em "Trocar" e confirma
+tela -> auth : POST /api/trocas {vantagemId} (token do aluno)
+auth -> controller : aluno logado
+controller -> service : trocar(aluno, dados)
+service -> repository : buscar_por_id(vantagem)
+repository -> banco : SELECT vantagem
+banco --> repository : vantagem
+repository --> service : vantagem e custo
+
+alt saldo suficiente
+  service -> service : gera o código do cupom (ABCD-2345)
+  service -> repository : codigo_em_uso(código)
+  repository --> service : código livre
+  service -> repository : registrar(troca, aluno)
+  repository -> banco : INSERT troca e UPDATE do saldo\n(um único commit)
+  banco --> repository : gravado
+  repository --> service : troca registrada
+  service -> email : notificar_troca(troca)
+  service --> controller : troca com o código
+  controller --> tela : 201 Created
+  tela --> aluno : exibe o código do cupom
+  email -> aluno : cupom com o código
+  email -> empresa : conferência com o mesmo código
+else saldo insuficiente
+  service --> controller : DadosInvalidos
+  controller --> tela : 400 Bad Request
+  tela --> aluno : informa que o saldo não é suficiente
+end
+
+== 6. Empresa confere o cupom apresentado ==
+
+aluno -> empresa : apresenta o código do cupom
+empresa -> tela : abre "Trocas" e busca o código
+tela -> auth : GET /api/trocas (token da empresa)
+auth -> controller : empresa logada
+controller -> service : trocas_da_empresa(empresa)
+service -> repository : listar_trocas_por_empresa(id)
+repository -> banco : SELECT trocas das vantagens da empresa
+banco --> repository : trocas
+repository --> service : trocas
+service --> controller : trocas
+controller --> tela : 200 OK
+tela --> empresa : exibe a troca com o aluno e a vantagem
+
+@enduml

@@ -7,7 +7,11 @@ import Aviso from "../components/Aviso.jsx";
 // depende do perfil: o mesmo envio é saída para o professor e entrada para o aluno.
 function descrever(transacao, perfil) {
   if (transacao.tipo === "troca") {
-    return { descricao: "Troca por vantagem", detalhe: `Cupom ${transacao.codigo}`, sinal: "-" };
+    return {
+      descricao: `Troca: ${transacao.vantagemNome} (${transacao.empresaNome})`,
+      detalhe: `Cupom ${transacao.codigo}`,
+      sinal: "-",
+    };
   }
   if (perfil === "professor") {
     return { descricao: `Envio para ${transacao.alunoNome}`, detalhe: transacao.mensagem, sinal: "-" };
