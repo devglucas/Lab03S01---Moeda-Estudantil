@@ -353,10 +353,23 @@ td.texto-longo {
   border-top: 1px solid var(--borda);
 }
 
-.vantagem-rodape .disponivel {
-  color: var(--sucesso-texto);
-}
-
 .vantagem-rodape .falta {
   color: var(--texto-suave);
+}
+
+.cupom {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  font-size: 0.875rem;
+  color: var(--sucesso-texto);
+  background: var(--sucesso-fundo);
+  border-radius: 6px;
+}
+
+.cupom strong {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 1.5rem;
+  letter-spacing: 0.08em;
+  color: var(--texto);
 }
