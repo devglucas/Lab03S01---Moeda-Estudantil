@@ -6,6 +6,7 @@ import CatalogoVantagens from "./pages/CatalogoVantagens.jsx";
 import Extrato from "./pages/Extrato.jsx";
 import Login from "./pages/Login.jsx";
 import Transacao from "./pages/Transacao.jsx";
+import TrocasEmpresa from "./pages/TrocasEmpresa.jsx";
 import Vantagem from "./pages/Vantagem.jsx";
 import { encerrarSessao, iniciarSessao, sessaoAtual } from "./sessao.js";
 
@@ -24,7 +25,10 @@ const ABAS_POR_TIPO = {
     { id: "enviar", rotulo: "Enviar moedas", Pagina: Transacao },
     { id: "extrato", rotulo: "Extrato", Pagina: Extrato },
   ],
-  empresa: [{ id: "vantagens", rotulo: "Minhas vantagens", Pagina: Vantagem }],
+  empresa: [
+    { id: "vantagens", rotulo: "Minhas vantagens", Pagina: Vantagem },
+    { id: "trocas", rotulo: "Trocas", Pagina: TrocasEmpresa },
+  ],
 };
 
 export default function App() {

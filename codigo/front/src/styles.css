@@ -373,3 +373,8 @@ td.texto-longo {
   letter-spacing: 0.08em;
   color: var(--texto);
 }
+
+td.codigo {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 600;
+}
