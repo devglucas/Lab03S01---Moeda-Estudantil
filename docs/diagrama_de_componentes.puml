@@ -17,6 +17,7 @@ node "Navegador" {
     [Página Extrato\n(aluno e professor)] as pagExtrato
     [Página Minhas vantagens\n(empresa)] as pagVantagens
     [Página Catálogo de vantagens\n(aluno)] as pagCatalogo
+    [Página Trocas\n(empresa)] as pagTrocas
     [Sessão\n(sessao.js)] as sessao
     [Componentes de UI\n(Campo, Aviso)] as ui
     [Formatação\n(máscaras CPF/RG/CNPJ)] as formatacao
@@ -37,6 +38,7 @@ node "Servidor (Flask)" {
       [ProfessorController] as ctrlProfessor
       [TransacaoController] as ctrlTransacao
       [VantagemController] as ctrlVantagem
+      [TrocaController] as ctrlTroca
     }
 
     package "Services" {
@@ -47,6 +49,7 @@ node "Servidor (Flask)" {
       [ProfessorService] as svcProfessor
       [TransacaoService] as svcTransacao
       [VantagemService] as svcVantagem
+      [TrocaService] as svcTroca
       [NotificacaoService] as svcNotificacao
       [EmailService] as svcEmail
       [Erros de negócio] as erros
@@ -75,7 +78,7 @@ node "Servidor (Flask)" {
       [Vantagem] as mVantagem
     }
 
-    [Templates de e-mail\n(professor e aluno)] as templates
+    [Templates de e-mail\n(envio e troca)] as templates
 
     [Seed\n(instituições iniciais)] as seed
   }
@@ -85,7 +88,7 @@ database "SQLite\n(moedas.db)" as sqlite
 folder "Fotos das vantagens\n(uploads/)" as uploads
 cloud "Servidor SMTP\n(Mailtrap)" as smtp
 
-interface "API REST (JSON)\n/api/auth\n/api/alunos\n/api/empresas\n/api/instituicoes\n/api/professores\n/api/transacoes\n/api/vantagens" as rest
+interface "API REST (JSON)\n/api/auth\n/api/alunos\n/api/empresas\n/api/instituicoes\n/api/professores\n/api/transacoes\n/api/vantagens\n/api/trocas" as rest
 
 usuario --> app
 app --> pagLogin
@@ -94,6 +97,7 @@ app --> pagTransacoes
 app --> pagExtrato
 app --> pagVantagens
 app --> pagCatalogo
+app --> pagTrocas
 app --> sessao
 pagLogin --> ui
 pagCadastro --> ui
@@ -101,6 +105,7 @@ pagTransacoes --> ui
 pagExtrato --> ui
 pagVantagens --> ui
 pagCatalogo --> ui
+pagTrocas --> ui
 pagCadastro --> formatacao
 pagLogin --> clienteApi
 pagCadastro --> clienteApi
@@ -108,6 +113,7 @@ pagTransacoes --> clienteApi
 pagExtrato --> clienteApi
 pagVantagens --> clienteApi
 pagCatalogo --> clienteApi
+pagTrocas --> clienteApi
 clienteApi --> sessao : token
 clienteApi ..> rest : HTTP / fetch
 rest -- flask
@@ -119,6 +125,7 @@ flask --> ctrlInst
 flask --> ctrlProfessor
 flask --> ctrlTransacao
 flask --> ctrlVantagem
+flask --> ctrlTroca
 flask ..> uploads : serve /uploads
 flask ..> erros : converte em JSON
 flask --> seed
@@ -126,6 +133,7 @@ flask --> seed
 ctrlAuth --> autenticacao
 ctrlTransacao --> autenticacao
 ctrlVantagem --> autenticacao
+ctrlTroca --> autenticacao
 autenticacao --> repUsuario
 ctrlAuth --> svcAuth
 ctrlAluno --> svcAluno
@@ -134,6 +142,7 @@ ctrlInst --> svcInst
 ctrlProfessor --> svcProfessor
 ctrlTransacao --> svcTransacao
 ctrlVantagem --> svcVantagem
+ctrlTroca --> svcTroca
 
 svcAluno --> validacao
 svcEmpresa --> validacao
@@ -145,6 +154,7 @@ svcProfessor ..> erros
 svcTransacao ..> erros
 svcAuth ..> erros
 svcVantagem ..> erros
+svcTroca ..> erros
 
 svcAluno --> repAluno
 svcAluno --> repUsuario
@@ -168,6 +178,10 @@ svcEmail ..> smtp : SMTP
 svcAuth --> autenticacao
 svcAuth --> repUsuario
 svcVantagem --> repVantagem
+svcVantagem --> repTransacao
+svcTroca --> repVantagem
+svcTroca --> repTransacao
+svcTroca --> svcNotificacao
 svcVantagem ..> uploads : grava e apaga fotos
 seed --> repInst
 
@@ -178,6 +192,7 @@ repUsuario --> mUsuario
 repProfessor --> mProfessor
 repTransacao --> mTransacao
 repTransacao --> mEnvio
+repTransacao --> mTroca
 repVantagem --> mVantagem
 
 mAluno --|> mUsuario
@@ -189,6 +204,7 @@ mEnvio --|> mTransacao
 mTroca --|> mTransacao
 mTransacao --> mAluno
 mEnvio --> mProfessor
+mTroca --> mVantagem
 mVantagem --> mEmpresa
 
 mUsuario ..> sqlite : ORM
