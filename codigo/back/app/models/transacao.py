@@ -60,15 +60,28 @@ class EnvioMoeda(Transacao):
 
 
 class TrocaVantagem(Transacao):
-    """Troca de moedas por vantagem. A ligação com a vantagem entra junto com o
-    cadastro de vantagens; por enquanto só existe o código do cupom."""
+    """Troca de moedas por uma vantagem.
+
+    ``codigo`` é o cupom enviado por e-mail ao aluno e à empresa, que o conferem
+    na hora de entregar o benefício. ``valor`` guarda o custo pago na troca, que
+    continua valendo mesmo se a empresa mudar o preço da vantagem depois.
+    """
 
     __tablename__ = "trocas_vantagem"
 
     id = db.Column(db.Integer, db.ForeignKey("transacoes.id"), primary_key=True)
     codigo = db.Column(db.String(20), nullable=False, unique=True)
 
+    vantagem_id = db.Column(db.Integer, db.ForeignKey("vantagens.id"), nullable=False)
+    vantagem = db.relationship("Vantagem")
+
     __mapper_args__ = {"polymorphic_identity": "troca"}
 
     def to_dict(self):
-        return {**super().to_dict(), "codigo": self.codigo}
+        return {
+            **super().to_dict(),
+            "codigo": self.codigo,
+            "vantagemId": self.vantagem_id,
+            "vantagemNome": self.vantagem.nome,
+            "empresaNome": self.vantagem.empresa.nome,
+        }

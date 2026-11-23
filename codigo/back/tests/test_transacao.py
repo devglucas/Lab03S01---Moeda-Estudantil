@@ -2,7 +2,9 @@ from sqlalchemy import event
 from sqlalchemy.exc import IntegrityError
 
 from app.extensions import db
+from app.models.empresa import EmpresaParceira
 from app.models.transacao import EnvioMoeda, TrocaVantagem
+from app.models.vantagem import Vantagem
 
 PROFESSOR = {
     "nome": "Carla", "email": "carla@puc.br", "cpf": "11111111111",
@@ -179,7 +181,11 @@ def test_extrato_do_aluno_traz_envios_e_trocas(client, entrar):
     client.post("/api/transacoes", json=envio, headers=cabecalho)
 
     with client.application.app_context():
-        db.session.add(TrocaVantagem(aluno_id=aluno["id"], valor=30, codigo="CUPOM1"))
+        empresa = EmpresaParceira(
+            login="loja@x.com", senha_hash="-", nome="Loja", email="loja@x.com", cnpj="12345678000199"
+        )
+        vantagem = Vantagem(nome="Caneca", descricao="Caneca da loja", custo=30, empresa=empresa)
+        db.session.add(TrocaVantagem(aluno_id=aluno["id"], valor=30, codigo="CUPOM1", vantagem=vantagem))
         db.session.commit()
 
     extrato = _extrato(client, entrar(ALUNO["email"]))
@@ -188,6 +194,8 @@ def test_extrato_do_aluno_traz_envios_e_trocas(client, entrar):
     assert {t["tipo"] for t in extrato["transacoes"]} == {"envio", "troca"}
     troca = next(t for t in extrato["transacoes"] if t["tipo"] == "troca")
     assert troca["codigo"] == "CUPOM1"
+    assert troca["vantagemNome"] == "Caneca"
+    assert troca["empresaNome"] == "Loja"
 
 
 def test_extrato_exige_login_de_aluno_ou_professor(client, entrar):
