@@ -1,0 +1,64 @@
+@startuml diagrama-comunicacao-geral
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+skinparam linetype polyline
+skinparam nodesep 70
+skinparam ranksep 80
+skinparam ArrowFontSize 11
+left to right direction
+
+title Diagrama de Comunicação - Sistema de Moeda Estudantil\n(1.x = Professor envia moedas | 2.x = Aluno troca moedas por vantagem)
+
+actor "Professor" as professor
+actor "Aluno" as aluno
+actor "Empresa Parceira" as empresa
+
+rectangle ":Front-end (React)" as tela
+rectangle ":Autenticação\n(exige_perfil)" as auth
+rectangle ":TransacaoController" as tc
+rectangle ":TrocaController" as trc
+rectangle ":TransacaoService" as ts
+rectangle ":TrocaService" as trs
+rectangle ":AlunoRepository" as ar
+rectangle ":VantagemRepository" as vr
+rectangle ":TransacaoRepository" as tr
+rectangle ":NotificacaoService" as ns
+rectangle ":EmailService" as es
+database ":SQLite" as bd
+
+' ===== 1. Professor envia moedas =====
+professor -[#1f77b4]-> tela : **1:** informa aluno, valor e motivo
+tela -[#1f77b4]-> auth : **1.1:** POST /api/transacoes (token)
+auth -[#1f77b4]-> tc : **1.2:** enviar(professor, dados)
+tc -[#1f77b4]-> ts : **1.3:** enviar_moedas(professor, dados)
+ts -[#1f77b4]-> ar : **1.4:** buscar_por_id(alunoId)
+ar -[#1f77b4]-> bd : **1.5:** SELECT aluno
+ts -[#1f77b4]-> ts : **1.6:** valida instituição,\nsaldo e debita/credita
+ts -[#1f77b4]-> tr : **1.7:** registrar(envio, professor, aluno)
+tr -[#1f77b4]-> bd : **1.8:** INSERT envio + UPDATE saldos\n(um único commit)
+ts -[#1f77b4]-> ns : **1.9:** notificar_envio_moedas(envio)
+ns -[#1f77b4]-> es : **1.10:** enviar(template professor / aluno)
+es -[#1f77b4]-> professor : **1.11:** e-mail de confirmação do envio
+es -[#1f77b4]-> aluno : **1.12:** e-mail de moedas recebidas
+
+' ===== 2. Aluno troca moedas por vantagem =====
+aluno -[#d62728]-> tela : **2:** clica em "Trocar" e confirma
+tela -[#d62728]-> auth : **2.1:** POST /api/trocas {vantagemId} (token)
+auth -[#d62728]-> trc : **2.2:** trocar(aluno, dados)
+trc -[#d62728]-> trs : **2.3:** trocar(aluno, dados)
+trs -[#d62728]-> vr : **2.4:** buscar_por_id(vantagemId)
+vr -[#d62728]-> bd : **2.5:** SELECT vantagem
+trs -[#d62728]-> trs : **2.6:** valida saldo e gera\ncódigo do cupom (ABCD-2345)
+trs -[#d62728]-> tr : **2.7:** codigo_em_uso(código)\ne registrar(troca, aluno)
+tr -[#d62728]-> bd : **2.8:** INSERT troca + UPDATE saldo\n(um único commit)
+trs -[#d62728]-> ns : **2.9:** notificar_troca(troca)
+ns -[#d62728]-> es : **2.10:** enviar(cupom / conferência)
+es -[#d62728]-> aluno : **2.11:** e-mail com o cupom
+es -[#d62728]-> empresa : **2.12:** e-mail de conferência\n(mesmo código)
+
+legend right
+  <color:#1f77b4>**Azul**</color>: fluxo 1 (envio de moedas)
+  <color:#d62728>**Vermelho**</color>: fluxo 2 (troca por vantagem)
+  Respostas HTTP (201 / 400) omitidas; e-mails saem após o commit.
+endlegend
+@enduml
