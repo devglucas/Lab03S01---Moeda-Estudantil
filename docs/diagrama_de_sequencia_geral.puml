@@ -5,217 +5,134 @@ hide footbox
 
 title Diagrama de Sequência Geral - Ciclo da Moeda Estudantil
 
-actor Professor as professor
-actor Aluno as aluno
-actor "Aluno ou Professor" as consultante
+actor "Professor" as professor
 actor "Empresa Parceira" as empresa
-
-participant "Interface Web" as tela
-participant "API" as api
+actor "Aluno" as aluno
+participant "Front-end\n(React)" as tela
 participant "Autenticação\n(exige_perfil)" as auth
 participant "Controllers" as controller
 participant "Services" as service
 participant "Repositories" as repository
-database "Banco de Dados" as banco
+database "SQLite" as banco
 participant "Serviço de E-mail" as email
 
-note over professor, empresa
-  Visão geral do ciclo da moeda estudantil.
-  Controllers, Services e Repositories representam as camadas internas
-  de forma agrupada para manter o diagrama legível. Nos casos de envio
-  de moedas e cadastro, os arquivos originais mostram essas etapas
-  apenas como "Sistema"; a divisão em camadas é uma abstração visual.
-end note
+== 1. Professor reconhece o aluno com moedas ==
 
-== 1. Professor reconhece o aluno: envio de moedas ==
+professor -> tela : escolhe o aluno, o valor e o motivo
+tela -> auth : POST /api/transacoes (token do professor)
+auth -> controller : professor logado
+controller -> service : enviar_moedas(professor, dados)
+service -> repository : buscar_por_id(aluno)
+repository -> banco : SELECT aluno
+banco --> repository : aluno
+repository --> service : aluno
 
-Professor -> tela : acessa "Envio de moedas"
-tela --> professor : exibe formulário
-Professor -> tela : seleciona aluno, informa quantidade e motivo
-Professor -> tela : confirma envio
-tela -> api : solicita envio de moedas
-api -> controller : encaminha dados do envio
-controller -> service : registrar_envio(aluno, quantidade, motivo)
-service -> repository : registrar transação de envio
-repository -> banco : INSERT do envio de moedas
-banco --> repository : registro confirmado
-repository --> service : envio registrado
-service -> repository : atualizar saldo do aluno e do professor
-repository -> banco : UPDATE dos saldos
-banco --> repository : saldos atualizados
-repository --> service : confirmação da atualização
-service --> controller : envio concluído
-controller --> api : sucesso
-api --> tela : envio realizado
-tela --> professor : exibe confirmação
-
-service -> email : enviar comprovante de recebimento ao aluno
-email -> aluno : e-mail de recebimento de moedas
-service -> email : enviar comprovante de recebimento ao professor
-email -> professor : e-mail de recebimento de moedas
-
-== 2. Vantagens disponibilizadas por empresas parceiras ==
-
-Professor -> tela : acessa "Cadastrar Vantagem"
-tela -> api : solicita empresas parceiras cadastradas
-api -> controller : buscar empresas parceiras
-controller -> service : listar_empresas_parceiras()
-service -> repository : buscar empresas parceiras
-repository -> banco : SELECT empresas parceiras cadastradas
-banco --> repository : lista de empresas
-repository --> service : empresas parceiras
-service --> controller : empresas parceiras
-controller --> api : lista de empresas
-api --> tela : lista de empresas
-tela --> professor : exibe formulário e empresas disponíveis
-
-Professor -> tela : informa nome, descrição e preço
-Professor -> tela : seleciona empresa parceira e confirma
-tela -> api : envia dados da vantagem
-api -> controller : encaminha cadastro
-controller -> service : validar dados e cadastrar vantagem
-service -> repository : salvar vantagem vinculada à instituição e à empresa
-repository -> banco : INSERT da vantagem
-banco --> repository : vantagem cadastrada
-repository --> service : confirmação do cadastro
-service --> controller : cadastro concluído
-controller --> api : sucesso
-api --> tela : vantagem cadastrada
-tela --> professor : exibe confirmação
-
-note over professor, empresa
-  Nos arquivos fornecidos, o cadastro é realizado pelo professor,
-  que associa a vantagem a uma empresa parceira. Não há um fluxo
-  de ação direta da empresa dentro da plataforma descrito nesse caso.
-end note
-
-== 3. Aluno consulta o catálogo de vantagens ==
-
-Aluno -> tela : abre a aba "Vantagens"
-tela -> api : GET /api/vantagens\n(Authorization: Bearer token)
-api -> auth : validar token e perfil
- auth -> banco : buscar usuário pelo token
-banco --> auth : usuário ou vazio
-
-alt token válido e perfil = aluno
-  auth -> controller : VantagemController.listar()
-  controller -> service : listar_todas()
-  service -> repository : listar_todas()
-  repository -> banco : SELECT vantagens e empresas parceiras\n(ordenado por custo e nome)
-  banco --> repository : registros das vantagens
-  repository --> service : vantagens
-  service --> controller : vantagens
-  controller --> auth : 200 OK (lista de vantagens)
-  auth --> api : 200 OK
-  api --> tela : catálogo de vantagens
-  tela -> api : authApi.eu()
-  api --> tela : perfil e saldo atual
-  tela --> aluno : exibe cartões, custos e suficiência do saldo
-else token ausente, inválido ou expirado
-  auth --> api : 401 Unauthorized
-  api -> api : encerra a sessão
-  api --> tela : sessão expirada
-  tela --> aluno : retorna à tela de login
-else perfil diferente de aluno
-  auth --> api : 403 Forbidden
-  api --> tela : acesso negado
-  tela --> aluno : exibe mensagem de acesso negado
+alt saldo suficiente e aluno da mesma instituição
+  service -> repository : registrar(envio, professor, aluno)
+  repository -> banco : INSERT envio e UPDATE dos saldos\n(um único commit)
+  banco --> repository : gravado
+  repository --> service : envio registrado
+  service -> email : notificar_envio_moedas(envio)
+  service --> controller : envio
+  controller --> tela : 201 Created
+  tela --> professor : exibe a confirmação e o novo saldo
+  email -> professor : confirmação do envio
+  email -> aluno : aviso de moedas recebidas
+else saldo insuficiente ou aluno de outra instituição
+  service --> controller : DadosInvalidos
+  controller --> tela : 400 Bad Request
+  tela --> professor : exibe o motivo da recusa
 end
 
-== 4. Aluno troca moedas por uma vantagem ==
+== 2. Empresa parceira oferece uma vantagem ==
 
-Aluno -> tela : seleciona uma vantagem e solicita a troca
-tela -> api : envia solicitação de troca
-api -> auth : validar token e perfil de aluno
-auth -> banco : buscar usuário pelo token
-banco --> auth : usuário ou vazio
+empresa -> tela : informa nome, descrição, custo e foto
+tela -> auth : POST /api/vantagens (token da empresa)
+auth -> controller : empresa logada
+controller -> service : criar(empresa, dados, foto)
+service -> service : valida os dados e grava a foto em uploads/
+service -> repository : salvar(vantagem)
+repository -> banco : INSERT vantagem
+banco --> repository : gravada
+repository --> service : vantagem
+service --> controller : vantagem
+controller --> tela : 201 Created
+tela --> empresa : exibe a vantagem em "Minhas vantagens"
 
-alt token válido e perfil = aluno
-  auth -> controller : encaminha solicitação de troca
-  controller -> service : processar_troca(aluno, vantagem)
-  service -> repository : consultar saldo do aluno e custo da vantagem
-  repository -> banco : SELECT saldo e dados da vantagem
-  banco --> repository : saldo e custo
-  repository --> service : saldo e custo
+== 3. Aluno consulta o saldo e o extrato ==
 
-  alt saldo suficiente
-    service -> service : gerar código único da troca
-    service -> repository : registrar troca e atualizar saldo do aluno
-    repository -> banco : INSERT troca_vantagem e UPDATE saldo
-    banco --> repository : troca registrada e saldo atualizado
-    repository --> service : confirmação da operação
+aluno -> tela : abre "Extrato"
+tela -> auth : GET /api/transacoes/extrato (token do aluno)
+auth -> controller : aluno logado
+controller -> service : extrato(aluno)
+service -> repository : listar_por_aluno(id)
+repository -> banco : SELECT envios e trocas do aluno
+banco --> repository : transações
+repository --> service : transações
+service --> controller : saldo e transações
+controller --> tela : 200 OK
+tela --> aluno : exibe o saldo, as moedas recebidas (+) e as trocas (-)
 
-    service -> email : enviar cupom ao aluno com o código
-    email -> aluno : e-mail com cupom e código da troca
-    service -> email : enviar confirmação à empresa com o mesmo código
-    email -> empresa : e-mail de confirmação e código da troca
+== 4. Aluno consulta o catálogo de vantagens ==
 
-    service --> controller : troca concluída
-    controller --> auth : confirmação da troca
-    auth --> api : sucesso
-    api --> tela : confirmação e código da troca
-    tela --> aluno : exibe confirmação do benefício
-  else saldo insuficiente
-    service --> controller : informar saldo insuficiente
-    controller --> auth : troca não realizada
-    auth --> api : erro de saldo insuficiente
-    api --> tela : erro de saldo insuficiente
-    tela --> aluno : informa que não há saldo suficiente
-  end
-else token ausente, inválido ou expirado
-  auth --> api : 401 Unauthorized
-  api -> api : encerra a sessão
-  api --> tela : sessão expirada
-  tela --> aluno : retorna à tela de login
-else perfil diferente de aluno
-  auth --> api : 403 Forbidden
-  api --> tela : acesso negado
-  tela --> aluno : exibe mensagem de acesso negado
+aluno -> tela : abre "Vantagens"
+tela -> auth : GET /api/vantagens (token do aluno)
+auth -> controller : aluno logado
+controller -> service : listar_todas()
+service -> repository : listar_todas()
+repository -> banco : SELECT vantagens e empresas\n(ordenado por custo)
+banco --> repository : vantagens
+repository --> service : vantagens
+service --> controller : vantagens
+controller --> tela : 200 OK
+tela -> auth : GET /api/auth/eu
+auth --> tela : perfil com o saldo atual
+tela --> aluno : exibe os cartões com "Trocar" ou "Faltam X moedas"
+
+== 5. Aluno troca moedas por uma vantagem ==
+
+aluno -> tela : clica em "Trocar" e confirma
+tela -> auth : POST /api/trocas {vantagemId} (token do aluno)
+auth -> controller : aluno logado
+controller -> service : trocar(aluno, dados)
+service -> repository : buscar_por_id(vantagem)
+repository -> banco : SELECT vantagem
+banco --> repository : vantagem
+repository --> service : vantagem e custo
+
+alt saldo suficiente
+  service -> service : gera o código do cupom (ABCD-2345)
+  service -> repository : codigo_em_uso(código)
+  repository --> service : código livre
+  service -> repository : registrar(troca, aluno)
+  repository -> banco : INSERT troca e UPDATE do saldo\n(um único commit)
+  banco --> repository : gravado
+  repository --> service : troca registrada
+  service -> email : notificar_troca(troca)
+  service --> controller : troca com o código
+  controller --> tela : 201 Created
+  tela --> aluno : exibe o código do cupom
+  email -> aluno : cupom com o código
+  email -> empresa : conferência com o mesmo código
+else saldo insuficiente
+  service --> controller : DadosInvalidos
+  controller --> tela : 400 Bad Request
+  tela --> aluno : informa que o saldo não é suficiente
 end
 
-note over aluno, empresa
-  Regra central da troca: os dois e-mails devem conter exatamente
-  o mesmo código, para permitir a conferência presencial do benefício.
-end note
+== 6. Empresa confere o cupom apresentado ==
 
-== 5. Aluno ou professor consulta o extrato ==
-
-consultante -> tela : abre a aba "Extrato"
-tela -> api : GET /api/transacoes/extrato\n(Authorization: Bearer token)
-api -> auth : validar token e perfil
-auth -> banco : buscar usuário pelo token
-banco --> auth : usuário ou vazio
-
-alt token válido e perfil = aluno ou professor
-  auth -> controller : TransacaoController.extrato()
-  controller -> service : extrato(usuário logado)
-
-  alt perfil = professor
-    service -> repository : listar_por_professor(id)
-    repository -> banco : SELECT transações e envios_moeda\n(mais recentes primeiro)
-    banco --> repository : envios realizados
-    repository --> service : envios realizados
-  else perfil = aluno
-    service -> repository : listar_por_aluno(id)
-    repository -> banco : SELECT transações, envios_moeda\ne trocas_vantagem (mais recentes primeiro)
-    banco --> repository : moedas recebidas e trocas
-    repository --> service : transações do aluno
-  end
-
-  service --> controller : saldo e transações
-  controller --> auth : 200 OK (saldo e transações)
-  auth --> api : 200 OK
-  api --> tela : dados do extrato
-  tela --> consultante : exibe saldo e histórico de entradas e saídas
-else token ausente, inválido ou expirado
-  auth --> api : 401 Unauthorized
-  api -> api : encerra a sessão
-  api --> tela : sessão expirada
-  tela --> consultante : retorna à tela de login
-else perfil = empresa
-  auth --> api : 403 Forbidden
-  api --> tela : acesso negado
-  tela --> consultante : exibe mensagem de acesso negado
-end
+aluno -> empresa : apresenta o código do cupom
+empresa -> tela : abre "Trocas" e busca o código
+tela -> auth : GET /api/trocas (token da empresa)
+auth -> controller : empresa logada
+controller -> service : trocas_da_empresa(empresa)
+service -> repository : listar_trocas_por_empresa(id)
+repository -> banco : SELECT trocas das vantagens da empresa
+banco --> repository : trocas
+repository --> service : trocas
+service --> controller : trocas
+controller --> tela : 200 OK
+tela --> empresa : exibe a troca com o aluno e a vantagem
 
 @enduml
